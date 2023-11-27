@@ -14,7 +14,7 @@ SERVER_IP = "127.0.0.1"
 
 # HELPER SOCKET METHODS
 
-def build_and_send_message(conn: socket, code: str, data: str):
+def build_and_send_message(conn: socket, code: str, data: str = ""):
     """
     Builds a new message using chatlib, wanted code and message.
     Prints debug info, then sends it to the given socket.
@@ -84,7 +84,7 @@ def setup_socket() -> socket:
     return sock
 
 
-def send_error(conn: socket, error_msg: str):
+def send_error(conn: socket, error_msg: str = ERROR_MSG):
     """
     Send error message with given message
     Receives: socket, message error string from called function
@@ -95,28 +95,25 @@ def send_error(conn: socket, error_msg: str):
 # MESSAGE HANDLING
 
 
-def handle_getscore_message(conn, username =""):
+def handle_getscore_message(conn: socket, username: str = ""):
     global users
-    if username!="": #get my score
+    if username != "":  # get my score
         build_and_send_message(conn, chatlib.PROTOCOL_SERVER["your_score_msg"], users[username]["score"])
-    else: #get highscore table
+    else:  # get highscore table
         scores = '\n'.join(
-            [f'\t{user}: {data["score"]}' for user, data in users.items()])  # creates a formatted str of the score table
+            [f'\t{user}: {data["score"]}' for user, data in
+             users.items()])  # creates a formatted str of the score table
         build_and_send_message(conn, chatlib.PROTOCOL_SERVER["highscore_msg"], scores)
 
 
-
-
-def handle_logout_message(conn):
+def handle_logout_message(conn: socket):
     """
-    Closes the given socket (in laster chapters, also remove user from logged_users dictioary)
-    Recieves: socket
-    Returns: None
+    Closes the given socket (in later chapters, also remove user from logged_users dictioary)
     """
     global logged_users
+    del logged_users[conn]
+    conn.close()
 
-
-# Implement code ...
 
 
 def handle_login_message(conn, data):
@@ -124,13 +121,23 @@ def handle_login_message(conn, data):
     Gets socket and message data of login message. Checks  user and pass exists and match.
     If not - sends error and finished. If all ok, sends OK message and adds user and address to logged_users
     Recieves: socket, message code and data
-    Returns: None (sends answer to client)
     """
     global users  # This is needed to access the same users dictionary from all functions
     global logged_users  # To be used later
-
-
-# Implement code ...
+    user_info = chatlib.split_data(data, 1)
+    if user_info[0] == chatlib.ERROR_RETURN:
+        send_error(conn, "username or password are incorrect")
+        return
+    if len(user_info[0]) == 0 or len(user_info[1]):
+        send_error(conn, "username or password are missing")
+        return
+    elif user_info[0] in users:
+        if users[user_info[0]] == user_info[1]:
+            build_and_send_message(conn, chatlib.PROTOCOL_SERVER["login_ok_msg"])
+            logged_users[conn] = user_info[0]
+            return
+    # failed to login
+    send_error(conn, "failed to login")
 
 
 def handle_client_message(conn, cmd, data):
