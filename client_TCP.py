@@ -15,7 +15,7 @@ OPTIONS = {'s': "get my score",
 
 # HELPER SOCKET METHODS
 
-def build_and_send_message(conn: socket, code: str, data: str):
+def build_and_send_message(conn: socket, code: str, data: str=""):
     """
     Builds a new message using chatlib, wanted code and message.
     Prints debug info, then sends it to the given socket.
@@ -79,7 +79,7 @@ def login(conn: socket):
         if cmd == chatlib.PROTOCOL_SERVER["login_ok_msg"]:  # logged in successfully
             print(f"{username} logged in successfully ")
             return
-        print(f"couldn't log in to {username}, please try again")
+        print(f"{data}\n couldn't log in to {username}, please try again")
 
 
 def logout(conn: socket):
