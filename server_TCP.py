@@ -89,17 +89,22 @@ def send_error(conn: socket, error_msg: str):
     Send error message with given message
     Receives: socket, message error string from called function
     """
-    build_and_send_message(conn, chatlib.PROTOCOL_SERVER[error_msg], error_msg)
+    build_and_send_message(conn, chatlib.PROTOCOL_SERVER["error_msg"], error_msg)
 
 
 # MESSAGE HANDLING
 
 
-def handle_getscore_message(conn, username):
+def handle_getscore_message(conn, username =""):
     global users
+    if username!="": #get my score
+        build_and_send_message(conn, chatlib.PROTOCOL_SERVER["your_score_msg"], users[username]["score"])
+    else: #get highscore table
+        scores = '\n'.join(
+            [f'\t{user}: {data["score"]}' for user, data in users.items()])  # creates a formatted str of the score table
+        build_and_send_message(conn, chatlib.PROTOCOL_SERVER["highscore_msg"], scores)
 
 
-# Implement this in later chapters
 
 
 def handle_logout_message(conn):
