@@ -165,9 +165,10 @@ def main():
     global questions
 
     print("Welcome to Trivia Server!")
-
-
-# Implement code ...
+    server_socket = setup_socket()
+    while True:
+        cmd, data = recv_message_and_parse()
+        handle_client_message(server_socket,cmd,data)
 
 
 if __name__ == '__main__':
