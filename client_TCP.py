@@ -1,9 +1,10 @@
 import socket
 import chatlib
+from chatlib import MSG_MAX_SIZE as MSG_MAX_SIZE
 
 SERVER_IP = "127.0.0.1"  # Our server will run on same computer as client
 SERVER_PORT = 5678
-MSG_MAX_SIZE = 4096
+
 
 OPTIONS = {'s': "get my score",
            'h': "get highscore table",
