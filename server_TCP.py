@@ -95,10 +95,10 @@ def send_error(conn: socket, error_msg: str = ERROR_MSG):
 # MESSAGE HANDLING
 
 
-def handle_getscore_message(conn: socket, username: str = ""):
+def handle_getscore_message(conn: socket, type: int = 0):
     global users
-    if username != "":  # get my score
-        build_and_send_message(conn, chatlib.PROTOCOL_SERVER["your_score_msg"], users[username]["score"])
+    if type == 0:  # get my score
+        build_and_send_message(conn, chatlib.PROTOCOL_SERVER["your_score_msg"], users[conn]["score"])
     else:  # get highscore table
         scores = '\n'.join(
             [f'\t{user}: {data["score"]}' for user, data in
@@ -111,9 +111,10 @@ def handle_logout_message(conn: socket):
     Closes the given socket (in later chapters, also remove user from logged_users dictioary)
     """
     global logged_users
-    del logged_users[conn]
-    conn.close()
-
+    try:
+        del logged_users[conn]
+    finally:
+        conn.close()
 
 
 def handle_login_message(conn, data):
@@ -135,21 +136,27 @@ def handle_login_message(conn, data):
         if users[user_info[0]] == user_info[1]:
             build_and_send_message(conn, chatlib.PROTOCOL_SERVER["login_ok_msg"])
             logged_users[conn] = user_info[0]
-            return
-    # failed to login
-    send_error(conn, "failed to login")
+            return  # logged in successfully
+    # failed to log in
+    send_error(conn, "username or password are incorrect")
 
 
-def handle_client_message(conn, cmd, data):
+def handle_client_message(conn: socket, cmd: str, data: str):
     """
     Gets message code and data and calls the right function to handle command
     Recieves: socket, message code and data
-    Returns: None
     """
     global logged_users  # To be used later
 
-
-# Implement code ...
+    if cmd == chatlib.PROTOCOL_CLIENT["login_msg"]:
+        handle_login_message(conn, data)
+        return
+    if cmd == chatlib.PROTOCOL_CLIENT["logout_msg"]:
+        handle_logout_message(conn)
+    if cmd == chatlib.PROTOCOL_CLIENT["my_score_req"]:
+        handle_getscore_message(conn)
+    if cmd == chatlib.PROTOCOL_CLIENT["highscore_req"]:
+        handle_getscore_message(conn, 1)
 
 
 def main():
@@ -158,9 +165,10 @@ def main():
     global questions
 
     print("Welcome to Trivia Server!")
-
-
-# Implement code ...
+    server_socket = setup_socket()
+    while True:
+        cmd, data = recv_message_and_parse()
+        handle_client_message(server_socket,cmd,data)
 
 
 if __name__ == '__main__':
