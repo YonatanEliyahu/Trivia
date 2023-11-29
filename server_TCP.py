@@ -95,9 +95,9 @@ def send_error(conn: socket, error_msg: str = ERROR_MSG):
 # MESSAGE HANDLING
 
 
-def handle_getscore_message(conn: socket, type: int = 0):
+def handle_getscore_message(conn: socket, req_type: int = 0):
     global users
-    if type == 0:  # get my score
+    if req_type == 0:  # get my score
         build_and_send_message(conn, chatlib.PROTOCOL_SERVER["your_score_msg"], users[conn]["score"])
     else:  # get highscore table
         scores = '\n'.join(
@@ -108,13 +108,16 @@ def handle_getscore_message(conn: socket, type: int = 0):
 
 def handle_logout_message(conn: socket):
     """
-    Closes the given socket (in later chapters, also remove user from logged_users dictioary)
+    Closes the given socket (in later chapters, also remove user from logged_users dictionary)
     """
     global logged_users
-    try:
-        del logged_users[conn]
-    finally:
-        conn.close()
+    print(f"logging {conn.fileno()} out...")
+
+    # Check if the user is logged in before attempting to delete
+    if conn.fileno() in logged_users:
+        del logged_users[conn.fileno()]
+
+    conn.close()
 
 
 def handle_login_message(conn, data):
@@ -135,7 +138,8 @@ def handle_login_message(conn, data):
     elif user_info[0] in users:
         if users[user_info[0]] == user_info[1]:
             build_and_send_message(conn, chatlib.PROTOCOL_SERVER["login_ok_msg"])
-            logged_users[conn] = user_info[0]
+            logged_users[conn.fileno()] = user_info[0]
+            print(f"{user_info[0]} logged in successfully..")
             return  # logged in successfully
     # failed to log in
     send_error(conn, "username or password are incorrect")
@@ -147,6 +151,10 @@ def handle_client_message(conn: socket, cmd: str, data: str):
     Recieves: socket, message code and data
     """
     global logged_users  # To be used later
+    if cmd is None and data is None:
+        send_error(conn)
+        handle_logout_message(conn)
+        raise ConnectionResetError
 
     if cmd == chatlib.PROTOCOL_CLIENT["login_msg"]:
         handle_login_message(conn, data)
@@ -160,15 +168,25 @@ def handle_client_message(conn: socket, cmd: str, data: str):
 
 
 def main():
-    # Initializes global users and questions dicionaries using load functions, will be used later
+    # Initializes global users and questions dictionaries using load functions, will be used later
     global users
     global questions
 
     print("Welcome to Trivia Server!")
     server_socket = setup_socket()
+    client_socket=socket.socket()
+    (client_socket, client_address) = server_socket.accept()
+    print("Client connected")
     while True:
-        cmd, data = recv_message_and_parse()
-        handle_client_message(server_socket,cmd,data)
+        try:
+            cmd, data = recv_message_and_parse(client_socket)
+            handle_client_message(client_socket, cmd, data)
+        except (socket.error, ConnectionResetError):
+            print("Client disconnected")
+            # Handle the situation where the client is disconnected
+            client_socket.close()
+            client_socket, client_address = server_socket.accept()
+            print("Client connected")
 
 
 if __name__ == '__main__':
