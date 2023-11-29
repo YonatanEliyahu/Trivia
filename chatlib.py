@@ -32,7 +32,7 @@ PROTOCOL_SERVER = {
     "your_score_msg": "YOUR_SCORE",
     "highscore_msg": "ALL_SCORE",
     "error_msg": "ERROR",
-    "no_qest_msg": "NO_QUESTIONS"
+    "no_quest_msg": "NO_QUESTIONS"
 }
 
 # Other constants
