@@ -89,6 +89,9 @@ def load_databases():
     questions = load_questions()
 
 
+# QUESTION HANDLING
+
+
 # MESSAGE HANDLING
 
 def handle_login_message(conn, data):
@@ -107,6 +110,10 @@ def handle_login_message(conn, data):
         send_error(conn, "username or password are missing")
         return
     elif user_info[0] in users.keys():
+        if user_info[0] in logged_users.values():
+            send_error(conn)  # user already connected
+            return
+
         if users[user_info[0]]["password"] == user_info[1]:
             build_and_send_message(conn, chatlib.PROTOCOL_SERVER["login_ok_msg"])
             logged_users[conn.fileno()] = user_info[0]
