@@ -108,7 +108,7 @@ def create_random_question(conn: socket) -> (int, str, int):
     global users
 
     # get all the questions that the user wasn't asked before
-    optional_questions = [(key,value) for key, value in questions.items()
+    optional_questions = [(key, value) for key, value in questions.items()
                           if key not in users[logged_users[conn.fileno()]]["questions_asked"]]
     if len(optional_questions) == 0:  # no question available at this moment to this user
         return 0, None, 0
@@ -217,7 +217,8 @@ def handle_getscore_message(conn: socket, req_type: int = 0):
     else:  # get highscore table
         scores = '\n'.join(
             [f'\t{user}: {data["score"]}' for user, data in
-             users.items()])  # creates a formatted str of the score table
+             sorted(users.items(), key=lambda x: x[1]["score"], reverse=True)])
+        # creates a formatted str of the score table DESC order
         build_and_send_message(conn, chatlib.PROTOCOL_SERVER["highscore_msg"], scores)
 
 
@@ -257,12 +258,11 @@ def handle_client_message(conn: socket, cmd: str, data: str):
 
     elif cmd == chatlib.PROTOCOL_CLIENT["get_question_msg"]:
         status = handle_answer_message(conn)
-        if status!=SUCCESS: #==FAIL or ==CONN_FAIL
+        if status != SUCCESS:  # ==FAIL or ==CONN_FAIL
             send_error(conn)
-            if status==CONN_FAIL:
+            if status == CONN_FAIL:
                 handle_logout_message(conn)
                 raise ConnectionResetError
-
 
 
 def main():
