@@ -150,7 +150,7 @@ def play_question(conn: socket):
     Question case handler.
     """
     code, data = build_send_recv_parse(conn, chatlib.PROTOCOL_CLIENT["get_question_msg"])
-    if code == chatlib.PROTOCOL_SERVER["no_qest_msg"]:
+    if code == chatlib.PROTOCOL_SERVER["no_quest_msg"]:
         print("no available question at this moment, do you want to try anything else?")
         return
     elif code != chatlib.PROTOCOL_SERVER["send_question_msg"]:
@@ -161,7 +161,7 @@ def play_question(conn: socket):
         if data[0] == chatlib.ERROR_RETURN:
             print("failed to get a new question from server, please try again")
             return
-    answer = print_question_get_answer(data)
+    answer = print_question_get_answer(data) # return value between 1 and 4
     code, data = build_send_recv_parse(conn, chatlib.PROTOCOL_CLIENT["send_answer_msg"], str(answer))
     if code == chatlib.PROTOCOL_SERVER["correct_ans_msg"]:
         print("CORRECT!!")
