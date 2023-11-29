@@ -1,4 +1,5 @@
 import socket
+import threading
 import chatlib
 from chatlib import MSG_MAX_SIZE as MSG_MAX_SIZE
 from random import shuffle as shuffle
@@ -264,25 +265,27 @@ def handle_client_message(conn: socket, cmd: str, data: str):
                 handle_logout_message(conn)
                 raise ConnectionResetError
 
-
-def main():
-    print("Welcome to Trivia Server!")
-    server_socket = setup_socket()
-
-    # Initializes global users and questions dictionaries using load functions, will be used later
-    load_databases()
-
-    (client_socket, client_address) = server_socket.accept()
-    print("Client connected")
+def handle_client(client_socket):
     while True:
         try:
             cmd, data = recv_message_and_parse(client_socket)
             handle_client_message(client_socket, cmd, data)
         except (socket.error, ConnectionResetError):
             print("Client disconnected")
-            # Handle the situation where the client is disconnected
-            client_socket, client_address = server_socket.accept()
-            print("Client connected")
+            break
+
+
+def main():
+    print("Welcome to Trivia Server!")
+    server_socket = setup_socket()
+    load_databases()
+
+    while True:
+        client_socket, client_address = server_socket.accept()
+        print("Client connected")
+
+        client_handler = threading.Thread(target=handle_client, args=(client_socket,))
+        client_handler.start()
 
 
 if __name__ == '__main__':
