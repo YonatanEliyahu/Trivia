@@ -1,6 +1,7 @@
 import socket
 import chatlib
 from chatlib import MSG_MAX_SIZE as MSG_MAX_SIZE
+from random import choice as rand_choice
 
 # GLOBALS
 users = {}
@@ -90,6 +91,32 @@ def load_databases():
 
 
 # QUESTION HANDLING
+
+def create_random_question(conn: socket) -> (int, str, int):
+    """
+    Gets socket connection and returns a random available question
+    returns question number, formatted question , and correct answer
+    if no question available for the current user, will return -1,None,-1
+
+    """
+    global questions
+    global logged_users
+    global users
+
+    # get all the questions that the user wasn't asked before
+    optional_questions = {key: value for key, value in questions
+                          if key not in users[logged_users[conn]]["questions_asked"]}
+    if len(optional_questions) == 0:  # no question available at this moment to this user
+        return -1, None, -1
+
+    picked_option = tuple(rand_choice(optional_questions)) # get random
+    # example -  (2313, {"question": "How much is 2+2", "answers": ["3", "4", "2", "1"], "correct": 2})
+    correct = picked_option[1]["correct"]
+    question = f"{picked_option[0]}#{picked_option[1]['question']}#" + \
+               str('#'.join(str(answer) for answer in picked_option[1]['answers']))
+    # example 2313#How much is 2+2?#3#4#2#1
+    return picked_option[0], question, correct
+
 
 
 # MESSAGE HANDLING
