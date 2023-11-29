@@ -38,7 +38,7 @@ PROTOCOL_SERVER = {
 # Other constants
 
 ERROR_RETURN = None  # What is returned in case of an error
-
+# eror
 
 def build_message(cmd, data):
     """
