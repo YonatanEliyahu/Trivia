@@ -47,10 +47,10 @@ def build_message(cmd, data):
     """
     if cmd is None:
         return ERROR_RETURN
-    if len(cmd) > CMD_FIELD_LENGTH or len(data) > MAX_DATA_LENGTH:
+    if len(cmd) > CMD_FIELD_LENGTH or len(str(data)) > MAX_DATA_LENGTH:
         return ERROR_RETURN
     cmd_with_padding = cmd + (16 - len(cmd)) * ' '
-    data_size = f"{len(data):04d}"
+    data_size = f"{len(str(data)):04d}"
     full_msg = f"{cmd_with_padding}|{data_size}|{data}"
     return full_msg
 
