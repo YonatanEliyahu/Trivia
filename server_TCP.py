@@ -73,13 +73,17 @@ def load_user_database() -> dict:
 def setup_socket() -> socket:
     """
     Creates new listening socket and returns it
+    loads the users from data base
     Returns: the socket object
     """
+    global users
     print("Starting up server ...")
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.bind((SERVER_IP, SERVER_PORT))
     sock.listen()
     print("Server is up and listening ...")
+
+    users = load_user_database()
 
     return sock
 
@@ -97,8 +101,10 @@ def send_error(conn: socket, error_msg: str = ERROR_MSG):
 
 def handle_getscore_message(conn: socket, req_type: int = 0):
     global users
+    global logged_users
     if req_type == 0:  # get my score
-        build_and_send_message(conn, chatlib.PROTOCOL_SERVER["your_score_msg"], users[conn]["score"])
+        build_and_send_message(conn, chatlib.PROTOCOL_SERVER["your_score_msg"],
+                               users[logged_users[conn.fileno()]]["score"])
     else:  # get highscore table
         scores = '\n'.join(
             [f'\t{user}: {data["score"]}' for user, data in
@@ -119,6 +125,17 @@ def handle_logout_message(conn: socket):
 
     conn.close()
 
+def handle_logged_users_message(conn: socket):
+    """
+    sends a list of all the logged-in users
+    """
+    global logged_users
+    users_str = ','.join([f'{user}' for user in logged_users.values()])
+
+    build_and_send_message(conn,chatlib.PROTOCOL_SERVER["logged_data_msg"],users_str)
+
+
+
 
 def handle_login_message(conn, data):
     """
@@ -132,11 +149,11 @@ def handle_login_message(conn, data):
     if user_info[0] == chatlib.ERROR_RETURN:
         send_error(conn, "username or password are incorrect")
         return
-    if len(user_info[0]) == 0 or len(user_info[1]):
+    if len(user_info[0]) == 0 or len(user_info[1]) == 0:
         send_error(conn, "username or password are missing")
         return
-    elif user_info[0] in users:
-        if users[user_info[0]] == user_info[1]:
+    elif user_info[0] in users.keys():
+        if users[user_info[0]]["password"] == user_info[1]:
             build_and_send_message(conn, chatlib.PROTOCOL_SERVER["login_ok_msg"])
             logged_users[conn.fileno()] = user_info[0]
             print(f"{user_info[0]} logged in successfully..")
@@ -165,6 +182,8 @@ def handle_client_message(conn: socket, cmd: str, data: str):
         handle_getscore_message(conn)
     if cmd == chatlib.PROTOCOL_CLIENT["highscore_req"]:
         handle_getscore_message(conn, 1)
+    if cmd == chatlib.PROTOCOL_CLIENT["logged_data_req"]:
+        handle_logged_users_message(conn)
 
 
 def main():
@@ -174,7 +193,6 @@ def main():
 
     print("Welcome to Trivia Server!")
     server_socket = setup_socket()
-    client_socket=socket.socket()
     (client_socket, client_address) = server_socket.accept()
     print("Client connected")
     while True:
@@ -184,7 +202,6 @@ def main():
         except (socket.error, ConnectionResetError):
             print("Client disconnected")
             # Handle the situation where the client is disconnected
-            client_socket.close()
             client_socket, client_address = server_socket.accept()
             print("Client connected")
 
