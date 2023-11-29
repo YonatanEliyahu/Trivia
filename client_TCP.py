@@ -184,7 +184,7 @@ def get_logged_users(conn: socket):
         data = data.split(",")
         print("LOGGED USERS:")
         for user in data:
-            print(user)
+            print(f'\t{user}')
 
 
 def main():
