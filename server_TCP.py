@@ -12,8 +12,23 @@ SERVER_PORT = 5678
 SERVER_IP = "127.0.0.1"
 
 
-# HELPER SOCKET METHODS
+# SOCKET CREATOR
+def setup_socket() -> socket:
+    """
+    Creates new listening socket and returns it
+    loads the users from data base
+    Returns: the socket object
+    """
+    print("Starting up server ...")
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.bind((SERVER_IP, SERVER_PORT))
+    sock.listen()
+    print("Server is up and listening ...")
 
+    return sock
+
+
+# HELPER SOCKET METHODS
 def build_and_send_message(conn: socket, code: str, data: str = ""):
     """
     Builds a new message using chatlib, wanted code and message.
@@ -41,7 +56,6 @@ def recv_message_and_parse(conn: socket) -> (str, str):
 
 
 # Data Loaders #
-
 def load_questions() -> dict:
     """
     Loads questions bank from file	## FILE SUPPORT TO BE ADDED LATER
@@ -68,74 +82,14 @@ def load_user_database() -> dict:
     return users_dict
 
 
-# SOCKET CREATOR
-
-def setup_socket() -> socket:
-    """
-    Creates new listening socket and returns it
-    loads the users from data base
-    Returns: the socket object
-    """
+def load_databases():
     global users
-    print("Starting up server ...")
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.bind((SERVER_IP, SERVER_PORT))
-    sock.listen()
-    print("Server is up and listening ...")
-
+    global questions
     users = load_user_database()
-
-    return sock
-
-
-def send_error(conn: socket, error_msg: str = ERROR_MSG):
-    """
-    Send error message with given message
-    Receives: socket, message error string from called function
-    """
-    build_and_send_message(conn, chatlib.PROTOCOL_SERVER["error_msg"], error_msg)
+    questions = load_questions()
 
 
 # MESSAGE HANDLING
-
-
-def handle_getscore_message(conn: socket, req_type: int = 0):
-    global users
-    global logged_users
-    if req_type == 0:  # get my score
-        build_and_send_message(conn, chatlib.PROTOCOL_SERVER["your_score_msg"],
-                               users[logged_users[conn.fileno()]]["score"])
-    else:  # get highscore table
-        scores = '\n'.join(
-            [f'\t{user}: {data["score"]}' for user, data in
-             users.items()])  # creates a formatted str of the score table
-        build_and_send_message(conn, chatlib.PROTOCOL_SERVER["highscore_msg"], scores)
-
-
-def handle_logout_message(conn: socket):
-    """
-    Closes the given socket (in later chapters, also remove user from logged_users dictionary)
-    """
-    global logged_users
-    print(f"logging {conn.fileno()} out...")
-
-    # Check if the user is logged in before attempting to delete
-    if conn.fileno() in logged_users:
-        del logged_users[conn.fileno()]
-
-    conn.close()
-
-def handle_logged_users_message(conn: socket):
-    """
-    sends a list of all the logged-in users
-    """
-    global logged_users
-    users_str = ','.join([f'{user}' for user in logged_users.values()])
-
-    build_and_send_message(conn,chatlib.PROTOCOL_SERVER["logged_data_msg"],users_str)
-
-
-
 
 def handle_login_message(conn, data):
     """
@@ -160,6 +114,51 @@ def handle_login_message(conn, data):
             return  # logged in successfully
     # failed to log in
     send_error(conn, "username or password are incorrect")
+
+
+def handle_logout_message(conn: socket):
+    """
+    Closes the given socket (in later chapters, also remove user from logged_users dictionary)
+    """
+    global logged_users
+    print(f"logging {conn.fileno()} out...")
+
+    # Check if the user is logged in before attempting to delete
+    if conn.fileno() in logged_users:
+        del logged_users[conn.fileno()]
+
+    conn.close()
+
+
+def handle_logged_users_message(conn: socket):
+    """
+    sends a list of all the logged-in users
+    """
+    global logged_users
+    users_str = ','.join([f'{user}' for user in logged_users.values()])
+
+    build_and_send_message(conn, chatlib.PROTOCOL_SERVER["logged_data_msg"], users_str)
+
+
+def handle_getscore_message(conn: socket, req_type: int = 0):
+    global users
+    global logged_users
+    if req_type == 0:  # get my score
+        build_and_send_message(conn, chatlib.PROTOCOL_SERVER["your_score_msg"],
+                               users[logged_users[conn.fileno()]]["score"])
+    else:  # get highscore table
+        scores = '\n'.join(
+            [f'\t{user}: {data["score"]}' for user, data in
+             users.items()])  # creates a formatted str of the score table
+        build_and_send_message(conn, chatlib.PROTOCOL_SERVER["highscore_msg"], scores)
+
+
+def send_error(conn: socket, error_msg: str = ERROR_MSG):
+    """
+    Send error message with given message
+    Receives: socket, message error string from called function
+    """
+    build_and_send_message(conn, chatlib.PROTOCOL_SERVER["error_msg"], error_msg)
 
 
 def handle_client_message(conn: socket, cmd: str, data: str):
@@ -187,12 +186,12 @@ def handle_client_message(conn: socket, cmd: str, data: str):
 
 
 def main():
-    # Initializes global users and questions dictionaries using load functions, will be used later
-    global users
-    global questions
-
     print("Welcome to Trivia Server!")
     server_socket = setup_socket()
+
+    # Initializes global users and questions dictionaries using load functions, will be used later
+    load_databases()
+
     (client_socket, client_address) = server_socket.accept()
     print("Client connected")
     while True:
