@@ -190,7 +190,7 @@ def handle_logout_message(conn: socket):
     Closes the given socket (in later chapters, also remove user from logged_users dictionary)
     """
     global logged_users
-    print(f"logging {conn.fileno()} out...")
+    print(f"logging [{logged_users[conn.fileno()].upper()}] out at {conn.getpeername()}...")
 
     # Check if the user is logged in before attempting to delete
     if conn.fileno() in logged_users:
