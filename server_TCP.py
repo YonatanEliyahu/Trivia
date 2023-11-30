@@ -1,11 +1,11 @@
 import socket
 import threading
-import chatlib
-from chatlib import MSG_MAX_SIZE as MSG_MAX_SIZE
+from chatlib_files import chatlib
+from chatlib_files.chatlib import MSG_MAX_SIZE
 from random import shuffle as shuffle
-from trivia_DB import load_question_table_from_db
-from trivia_DB import load_user_data_from_db
-from trivia_DB import update_user_data_in_db
+from DB_files.trivia_DB import load_question_table_from_db
+from DB_files.trivia_DB import load_user_data_from_db
+from DB_files.trivia_DB import update_user_data_in_db
 
 SUCCESS = 0  # success indicator
 CONN_FAIL = -1  # connection failure indicator

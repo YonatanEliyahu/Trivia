@@ -1,6 +1,6 @@
 import socket
-import chatlib
-from chatlib import MSG_MAX_SIZE as MSG_MAX_SIZE
+from chatlib_files import chatlib
+from chatlib_files.chatlib import MSG_MAX_SIZE
 
 SERVER_IP = "127.0.0.1"  # Our server will run on same computer as client
 SERVER_PORT = 5678
