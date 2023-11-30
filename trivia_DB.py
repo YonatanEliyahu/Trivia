@@ -1,10 +1,33 @@
 import sqlite3
 
+DB_NAME = 'trivia_DB.db'
+
+users_dict = {
+    "test": {"password": "test", "score": 0, "questions_asked": []},
+    "yossi": {"password": "123", "score": 50, "questions_asked": []},
+    "master": {"password": "master", "score": 200, "questions_asked": []}
+}
+
+questions_dict = {
+    2313: {"question": "How much is 2+2", "answers": ["3", "4", "2", "1"], "correct": 2},
+    4122: {"question": "What is the capital of France?", "answers": ["Lion", "Marseille", "Paris", "Montpellier"],
+           "correct": 3}
+}
+
+
+def connect_to_db():
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    return conn, cursor
+
+
+def close_db_connection(conn):
+    conn.commit()
+    conn.close()
+
 
 def create_question_table():
-    conn = sqlite3.connect('trivia_DB.db')
-    cursor = conn.cursor()
-
+    conn, cursor = connect_to_db()
     # Create a table to store your data
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS questions (
@@ -19,22 +42,113 @@ def create_question_table():
     ''')
 
     # Insert data into the table
-    questions_dict = {
-        2313: {"question": "How much is 2+2", "answers": ["3", "4", "2", "1"], "correct": 2},
-        4122: {"question": "What is the capital of France?", "answers": ["Lion", "Marseille", "Paris", "Montpellier"],
-               "correct": 3}
-    }
-    for q_num, q_data in questions_dict.items():
-        cursor.execute(
-            'INSERT INTO questions (id, question,answer1,answer2,answer3,answer4,currectAnswer) '
-            'VALUES (?, ?, ?, ?, ?, ?, ?)', (
-            q_num, q_data["question"], q_data["answers"][0], q_data["answers"][1], q_data["answers"][2],
-            q_data["answers"][3], q_data["correct"]))
+    try:
+        for q_num, q_data in questions_dict.items():
+            cursor.execute(
+                'INSERT INTO questions (id, question,answer1,answer2,answer3,answer4,currectAnswer) '
+                'VALUES (?, ?, ?, ?, ?, ?, ?)', (
+                    q_num, q_data["question"], q_data["answers"][0], q_data["answers"][1], q_data["answers"][2],
+                    q_data["answers"][3], q_data["correct"]))
+    except:
+        pass
+    finally:
+        # Commit and close the connection
+        close_db_connection(conn)
+
+
+def load_question_table_from_db():
+    conn, cursor = connect_to_db()
+
+    cursor.execute('SELECT * FROM questions')
+    questions = cursor.fetchall()
+
+    questions_dict = {}
+    for q in questions:
+        question_data = {"question": q[1],
+                         "answers": [q[2], q[3], q[4], q[5]],
+                         "correct": q[6]}
+        questions_dict[q[0]] = question_data
 
     # Commit and close the connection
-    conn.commit()
-    conn.close()
+    close_db_connection(conn)
+    return questions_dict
+
+
+def create_users_table():
+    conn, cursor = connect_to_db()
+    # Create a table to store your data
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS users_data (
+            username TEXT PRIMARY KEY,
+            password TEXT NOT NULL,
+            score INTEGER NOT NULL
+        )
+    ''')
+    # Insert data into the table
+    try:
+        for username, user_data in users_dict.items():
+            cursor.execute(
+                'INSERT INTO users_data (username, password,score) '
+                'VALUES (?, ?, ?)', (username, user_data["password"], user_data["score"]))
+    except:  # data already in table
+        pass
+    finally:
+        # Commit and close the connection
+        close_db_connection(conn)
+
+
+def create_user_question_relation_table():
+    conn, cursor = connect_to_db()
+
+    # Create a table to store user-question relations
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS user_question_relation (
+            username TEXT,
+            question_id INTEGER,
+            PRIMARY KEY (username, question_id),
+            FOREIGN KEY (username) REFERENCES users_data(username),
+            FOREIGN KEY (question_id) REFERENCES questions(id)
+        )
+    ''')
+
+    # Insert data into the table
+    try:
+        for username in users_dict.key():
+            for questions_id in users_dict[username]["questions_asked"]:
+                cursor.execute(
+                    'INSERT INTO user_question_relation (username, question_id) '
+                    'VALUES (?, ?)', (username, questions_id))
+    except:  # data already in table
+        pass
+    finally:
+        # Commit and close the connection
+        close_db_connection(conn)
+
+
+def load_user_data_from_db():
+    conn, cursor = connect_to_db()
+
+    cursor.execute('SELECT * FROM users_data')
+    users = cursor.fetchall()
+    cursor.execute('SELECT * FROM user_question_relation')
+    user_questionID = cursor.fetchall()
+
+    users_res_dict = {}
+    for user in users:
+        user_data = {"password": user[1],
+                     "score": user[2],
+                     "questions_asked": []
+                     }
+        users_res_dict[user[0]] = user_data
+    for row in user_questionID:
+        users_res_dict[row[0]]["questions_asked"].append(row[1])
+
+    # Commit and close the connection
+    close_db_connection(conn)
+    return users_res_dict
 
 
 if __name__ == "__main__":
     create_question_table()
+    create_users_table()
+    create_user_question_relation_table()
