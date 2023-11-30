@@ -3,6 +3,8 @@ import threading
 import chatlib
 from chatlib import MSG_MAX_SIZE as MSG_MAX_SIZE
 from random import shuffle as shuffle
+from trivia_DB import load_question_table_from_db
+from trivia_DB import load_user_data_from_db
 
 SUCCESS = 0  # success indicator
 CONN_FAIL = -1  # connection failure indicator
@@ -61,38 +63,13 @@ def recv_message_and_parse(conn: socket) -> (str, str):
         return None, None
 
 
-# Data Loaders #
-def load_questions() -> dict:
-    """
-    Loads questions bank from file	## FILE SUPPORT TO BE ADDED LATER
-    Returns: questions dictionary
-    """
-    questions_dict = {
-        2313: {"question": "How much is 2+2", "answers": ["3", "4", "2", "1"], "correct": 2},
-        4122: {"question": "What is the capital of France?", "answers": ["Lion", "Marseille", "Paris", "Montpellier"],
-               "correct": 3}
-    }
-    return questions_dict
-
-
-def load_user_database() -> dict:
-    """
-    Loads users list from file	## FILE SUPPORT TO BE ADDED LATER
-    Returns: user dictionary
-    """
-    users_dict = {
-        "test": {"password": "test", "score": 0, "questions_asked": []},
-        "yossi": {"password": "123", "score": 50, "questions_asked": []},
-        "master": {"password": "master", "score": 200, "questions_asked": []}
-    }
-    return users_dict
-
+# Data Loader
 
 def load_databases():
     global users
     global questions
-    users = load_user_database()
-    questions = load_questions()
+    users = load_user_data_from_db()
+    questions = load_question_table_from_db()
 
 
 # QUESTION HANDLING
