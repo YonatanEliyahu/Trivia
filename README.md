@@ -5,6 +5,10 @@ It consists of a server and a client.
 The server manages user authentication, scores, and trivia questions,
 while the client provides the interface for users to interact with the game.
 
+## Comming Up
+- Using API to get more questions
+- Sing up to the server
+
 ## Server
 
 ### Features
