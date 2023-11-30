@@ -148,6 +148,29 @@ def load_user_data_from_db():
     return users_res_dict
 
 
+def update_user_data_in_db(user_data: tuple):
+    conn, cursor = connect_to_db()
+
+    cursor.execute('''
+        UPDATE users_data
+        SET score = ?
+        WHERE username = ?
+    ''', (user_data[1]['score'], user_data[0]))
+
+    for question_id in user_data[1]["questions_asked"]:  # Fix the loop syntax
+        try:
+            cursor.execute(
+                'INSERT INTO user_question_relation (username, question_id) '
+                'VALUES (?, ?)', (user_data[0], question_id))
+        except sqlite3.IntegrityError:
+            # Handle the case where the relation already exists
+            pass
+
+    # Commit and close the connection
+    close_db_connection(conn)
+
+
+
 if __name__ == "__main__":
     create_question_table()
     create_users_table()

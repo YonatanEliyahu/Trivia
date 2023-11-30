@@ -5,6 +5,7 @@ from chatlib import MSG_MAX_SIZE as MSG_MAX_SIZE
 from random import shuffle as shuffle
 from trivia_DB import load_question_table_from_db
 from trivia_DB import load_user_data_from_db
+from trivia_DB import update_user_data_in_db
 
 SUCCESS = 0  # success indicator
 CONN_FAIL = -1  # connection failure indicator
@@ -168,6 +169,9 @@ def handle_logout_message(conn: socket):
     """
     global logged_users
     print(f"logging [{logged_users[conn.fileno()].upper()}] out at {conn.getpeername()}...")
+
+    user = (f'logged_users[conn.fileno()]',users[logged_users[conn.fileno()]])
+    update_user_data_in_db(user)
 
     # Check if the user is logged in before attempting to delete
     if conn.fileno() in logged_users:
