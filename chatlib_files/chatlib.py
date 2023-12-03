@@ -15,6 +15,7 @@ MSG_MAX_SIZE = 4096
 PROTOCOL_CLIENT = {
     "login_msg": "LOGIN",
     "logout_msg": "LOGOUT",
+    "signup_msg": "SIGNUP",
     "logged_data_req": "LOGGED",
     "get_question_msg": "GET_QUESTION",
     "send_answer_msg": "SEND_ANSWER",
@@ -25,6 +26,7 @@ PROTOCOL_CLIENT = {
 PROTOCOL_SERVER = {
     "login_ok_msg": "LOGIN_OK",
     "login_failed_msg": "ERROR",
+    "signup_ok_msg": "SIGNUP_OK",
     "logged_data_msg": "LOGGED_ANSWER",
     "send_question_msg": "YOUR_QUESTION",
     "correct_ans_msg": "CORRECT_ANSWER",
@@ -38,6 +40,8 @@ PROTOCOL_SERVER = {
 # Other constants
 
 ERROR_RETURN = None  # What is returned in case of an error
+
+
 # eror
 
 def build_message(cmd, data):
