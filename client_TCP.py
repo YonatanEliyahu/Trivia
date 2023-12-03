@@ -86,7 +86,6 @@ def signup(conn: socket):
         cmd, data = recv_message_and_parse(conn)
         if cmd == chatlib.PROTOCOL_SERVER["signup_ok_msg"]:  # logged in successfully
             print(f"{username} signed up successfully ")
-            login(conn)
             return
         print(f"{data}\n couldn't sign up {username}, please try again")
 
@@ -221,10 +220,11 @@ def main():
         if len(choice) != 1 or choice not in {'s', 'l'}:
             continue
         elif choice == 's':
-            signup(conn)
+            signup(conn) # sign up new user
+            login(conn)
             break
         elif choice == 'l':
-            login(conn)
+            login(conn) # login to existing user
             break
 
     options = '\n'.join(
