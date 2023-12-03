@@ -1,6 +1,7 @@
 import socket
 from chatlib_files import chatlib
 from chatlib_files.chatlib import MSG_MAX_SIZE
+from server_TCP import allowed_login_chars as allowed_login_chars
 
 SERVER_IP = "127.0.0.1"  # Our server will run on same computer as client
 SERVER_PORT = 5678

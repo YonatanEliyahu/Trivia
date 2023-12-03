@@ -16,6 +16,9 @@ users = {}
 questions = {}
 logged_users = {}  # a dictionary of client file descriptor to usernames
 
+allowed_login_chars = set(chr(i) for i in range(ord('a'), ord('z') + 1)).union(
+    set(chr(i) for i in range(ord('A'), ord('Z') + 1))).union(set(i for i in range(0, 10))) + {'!', '@', '_'}
+
 ERROR_MSG = "Error! "
 SERVER_PORT = 5678
 SERVER_IP = "127.0.0.1"
@@ -170,7 +173,7 @@ def handle_logout_message(conn: socket):
     global logged_users
     print(f"logging [{logged_users[conn.fileno()].upper()}] out at {conn.getpeername()}...")
 
-    user = (f'logged_users[conn.fileno()]',users[logged_users[conn.fileno()]])
+    user = (f'logged_users[conn.fileno()]', users[logged_users[conn.fileno()]])
     update_user_data_in_db(user)
 
     # Check if the user is logged in before attempting to delete
@@ -245,6 +248,7 @@ def handle_client_message(conn: socket, cmd: str, data: str):
             if status == CONN_FAIL:
                 handle_logout_message(conn)
                 raise ConnectionResetError
+
 
 def handle_client(client_socket):
     while True:
