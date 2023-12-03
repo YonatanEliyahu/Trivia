@@ -20,9 +20,11 @@ def build_and_send_message(conn: socket, code: str, data: str = ""):
     Builds a new message using chatlib, wanted code and message.
     Prints debug info, then sends it to the given socket.
     """
-    formated_msg = chatlib.build_message(code, data)
-    conn.send(formated_msg.encode())
-    print(f"[CLIENT] {formated_msg}")
+    try:
+        formated_msg = chatlib.build_message(code, data)
+        conn.send(formated_msg.encode())
+    except:
+        raise  # raise the exception to calling function
 
 
 def recv_message_and_parse(conn: socket) -> (str, str):
@@ -71,11 +73,12 @@ def signup(conn: socket):
     send the data to the server and wait for response.
     """
     while True:
-        print("Username and password must contain at least 6 each (15 MAX), and include only a-zA-Z, 0-9 or '!','@','_'")
+        print(
+            "Username and password must contain at least 6 each (15 MAX), and include only a-zA-Z, 0-9 or '!','@','_'")
         username = input("Please enter new username: \n")
         password = input("Please enter password: \n")
 
-        if len(username) < 6 or len(username) > 15 or len(password) < 6 or len(password) >15:
+        if len(username) < 6 or len(username) > 15 or len(password) < 6 or len(password) > 15:
             continue
         for c in str(username + password):
             if c not in allowed_login_chars:
@@ -112,7 +115,7 @@ def logout(conn: socket):
     """
     logging out the client from the server.
     """
-    build_and_send_message(conn, chatlib.PROTOCOL_CLIENT["logout_msg"], "")
+    build_and_send_message(conn, chatlib.PROTOCOL_CLIENT["logout_msg"])
 
 
 def build_send_recv_parse(conn: socket, code: str, data: str = "") -> (str, str):
@@ -240,22 +243,28 @@ def main():
     options = '\n'.join(
         [f'\t{key} - {value}' for key, value in OPTIONS.items()])  # creates a formatted str of the given options
     while True:
-        choice = input(f"Please choose one of the following options:\n{options}\n").lower()
-        if len(choice) != 1 or choice not in OPTIONS.keys():
-            continue
-        elif choice == 's':
-            get_score(conn)
-        elif choice == 'h':
-            get_highscore(conn)
-        elif choice == 'l':
-            get_logged_users(conn)
-        elif choice == 'p':
-            play_question(conn)
-        elif choice == 'q':
+        try:
+            choice = input(f"Please choose one of the following options:\n{options}\n").lower()
+            if len(choice) != 1 or choice not in OPTIONS.keys():
+                continue
+            elif choice == 's':
+                get_score(conn)
+            elif choice == 'h':
+                get_highscore(conn)
+            elif choice == 'l':
+                get_logged_users(conn)
+            elif choice == 'p':
+                play_question(conn)
+            elif choice == 'q':
+                break
+        except (ConnectionResetError, KeyboardInterrupt):
+            print("ERROR: Connection Interrupted...")
             break
-
-    logout(conn)
-    conn.close()
+    try:
+        logout(conn)
+        conn.close()
+    except:  # connection may be close already
+        pass
 
 
 if __name__ == '__main__':
