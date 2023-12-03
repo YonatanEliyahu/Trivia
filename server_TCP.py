@@ -192,8 +192,8 @@ def handle_signup_message(conn, data):
     if user_info[0] == chatlib.ERROR_RETURN:
         send_error(conn, "username or password are incorrect")
         return
-    if len(user_info[0]) < 6 or len(user_info[1]) < 6:
-        send_error(conn, "username or password are too short")
+    if len(user_info[0]) < 6 or len(user_info[0]) > 15 or len(user_info[1]) < 6 or len(user_info[1]) >15:
+        send_error(conn, "username or password are too short/long")
         return
     for c in str(user_info[0]) + str(user_info[1]):
         if c not in allowed_login_chars:

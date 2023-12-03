@@ -71,11 +71,11 @@ def signup(conn: socket):
     send the data to the server and wait for response.
     """
     while True:
-        print("Username and password must contain at least 6 each, and  include only a-zA-Z, 0-9 or '!','@','_'")
+        print("Username and password must contain at least 6 each (15 MAX), and include only a-zA-Z, 0-9 or '!','@','_'")
         username = input("Please enter new username: \n")
         password = input("Please enter password: \n")
 
-        if len(username) < 6 or len(password) < 6:
+        if len(username) < 6 or len(username) > 15 or len(password) < 6 or len(password) >15:
             continue
         for c in str(username + password):
             if c not in allowed_login_chars:
