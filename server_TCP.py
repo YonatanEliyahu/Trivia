@@ -3,9 +3,10 @@ import threading
 from chatlib_files import chatlib
 from chatlib_files.chatlib import MSG_MAX_SIZE
 from random import shuffle as shuffle
-from DB_files.trivia_DB import load_question_table_from_db
-from DB_files.trivia_DB import load_user_data_from_db
-from DB_files.trivia_DB import update_user_data_in_db
+from trivia_DB import load_question_table_from_db
+from trivia_DB import load_user_data_from_db
+from trivia_DB import update_user_data_in_db
+from trivia_DB import create_user_data_in_db
 
 SUCCESS = 0  # success indicator
 CONN_FAIL = -1  # connection failure indicator
@@ -15,6 +16,10 @@ FAIL = -2  # non connection failure indicator
 users = {}
 questions = {}
 logged_users = {}  # a dictionary of client file descriptor to usernames
+
+allowed_login_chars = set(chr(i) for i in range(ord('a'), ord('z') + 1)).union(
+    set(chr(i) for i in range(ord('A'), ord('Z') + 1))).union(
+    {'!', '@', '_', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9'})
 
 ERROR_MSG = "Error! "
 SERVER_PORT = 5678
@@ -141,7 +146,7 @@ def handle_login_message(conn, data):
     Recieves: socket, message code and data
     """
     global users  # This is needed to access the same users dictionary from all functions
-    global logged_users  # To be used later
+    global logged_users
     user_info = chatlib.split_data(data, 1)
     if user_info[0] == chatlib.ERROR_RETURN:
         send_error(conn, "username or password are incorrect")
@@ -163,6 +168,39 @@ def handle_login_message(conn, data):
     send_error(conn, "username or password are incorrect")
 
 
+def handle_signup_message(conn, data):
+    """
+    Gets socket and message data of signup message. Checks if user is available.
+    If not - sends error and finished. If all ok, sends OK message and adds user to users list and DB
+    Recieves: socket, message code and data
+    """
+    global users  # This is needed to access the same users dictionary from all functions
+    user_info = chatlib.split_data(data, 1)
+    if user_info[0] == chatlib.ERROR_RETURN:
+        send_error(conn, "username or password are incorrect")
+        return
+    if len(user_info[0]) < 6 or len(user_info[1]) < 6:
+        send_error(conn, "username or password are too short")
+        return
+    for c in str(user_info[0]) + str(user_info[1]):
+        if c not in allowed_login_chars:
+            send_error(conn, f"username or password are incorrect - {c}")
+            return
+    if user_info[0] in users.keys():
+        send_error(conn, "username already exists incorrect")
+        return
+    users[user_info[0]] = {"password": user_info[1], "score": 0, "questions_asked": []}
+    print(f"{user_info[0]} signed up successfully..")
+    try:  # DB failure
+        create_user_data_in_db(user_info[0], user_info[1])
+    except:
+        del users[user_info[0]]
+        send_error(conn, f"username or password are incorrect")
+        return
+
+    build_and_send_message(conn, chatlib.PROTOCOL_SERVER["signup_ok_msg"])
+
+
 def handle_logout_message(conn: socket):
     """
     Closes the given socket (in later chapters, also remove user from logged_users dictionary)
@@ -170,7 +208,7 @@ def handle_logout_message(conn: socket):
     global logged_users
     print(f"logging [{logged_users[conn.fileno()].upper()}] out at {conn.getpeername()}...")
 
-    user = (f'logged_users[conn.fileno()]',users[logged_users[conn.fileno()]])
+    user = (f'{logged_users[conn.fileno()]}', users[logged_users[conn.fileno()]])
     update_user_data_in_db(user)
 
     # Check if the user is logged in before attempting to delete
@@ -217,11 +255,14 @@ def handle_client_message(conn: socket, cmd: str, data: str):
     Gets message code and data and calls the right function to handle command
     Recieves: socket, message code and data
     """
-    global logged_users  # To be used later
+    global logged_users
     if cmd is None and data is None:
         send_error(conn)
         handle_logout_message(conn)
         raise ConnectionResetError
+
+    elif cmd == chatlib.PROTOCOL_CLIENT["signup_msg"]:
+        handle_signup_message(conn, data)
 
     elif cmd == chatlib.PROTOCOL_CLIENT["login_msg"]:
         handle_login_message(conn, data)
@@ -245,6 +286,7 @@ def handle_client_message(conn: socket, cmd: str, data: str):
             if status == CONN_FAIL:
                 handle_logout_message(conn)
                 raise ConnectionResetError
+
 
 def handle_client(client_socket):
     while True:

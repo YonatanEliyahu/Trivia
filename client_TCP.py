@@ -1,10 +1,10 @@
 import socket
 from chatlib_files import chatlib
 from chatlib_files.chatlib import MSG_MAX_SIZE
+from server_TCP import allowed_login_chars as allowed_login_chars
 
 SERVER_IP = "127.0.0.1"  # Our server will run on same computer as client
 SERVER_PORT = 5678
-
 
 OPTIONS = {'s': "get my score",
            'h': "get highscore table",
@@ -15,7 +15,7 @@ OPTIONS = {'s': "get my score",
 
 # HELPER SOCKET METHODS
 
-def build_and_send_message(conn: socket, code: str, data: str=""):
+def build_and_send_message(conn: socket, code: str, data: str = ""):
     """
     Builds a new message using chatlib, wanted code and message.
     Prints debug info, then sends it to the given socket.
@@ -62,6 +62,33 @@ def error_and_exit(conn: socket, error_msg: str = "ERROR"):
     finally:
         conn.close()
         exit(1)
+
+
+def signup(conn: socket):
+    """
+    Receives a username and password,
+    then parses the data using chatlib.
+    send the data to the server and wait for response.
+    """
+    while True:
+        print("Username and password must contain at least 6 each, and  include only a-zA-Z, 0-9 or '!','@','_'")
+        username = input("Please enter new username: \n")
+        password = input("Please enter password: \n")
+
+        if len(username) < 6 or len(password) < 6:
+            continue
+        for c in str(username + password):
+            if c not in allowed_login_chars:
+                continue
+
+        data = f'{username}{chatlib.DATA_DELIMITER}{password}'
+        build_and_send_message(conn, chatlib.PROTOCOL_CLIENT["signup_msg"], data)
+        cmd, data = recv_message_and_parse(conn)
+        if cmd == chatlib.PROTOCOL_SERVER["signup_ok_msg"]:  # logged in successfully
+            print(f"{username} signed up successfully ")
+            login(conn)
+            return
+        print(f"{data}\n couldn't sign up {username}, please try again")
 
 
 def login(conn: socket):
@@ -161,7 +188,7 @@ def play_question(conn: socket):
         if data[0] == chatlib.ERROR_RETURN:
             print("failed to get a new question from server, please try again")
             return
-    answer = print_question_get_answer(data) # return value between 1 and 4
+    answer = print_question_get_answer(data)  # return value between 1 and 4
     code, data = build_send_recv_parse(conn, chatlib.PROTOCOL_CLIENT["send_answer_msg"], str(answer))
     if code == chatlib.PROTOCOL_SERVER["correct_ans_msg"]:
         print("CORRECT!!")
@@ -189,19 +216,30 @@ def get_logged_users(conn: socket):
 
 def main():
     conn = connect()
-    login(conn)
-    options = '\n'.join([f'\t{key} - {value}' for key, value in OPTIONS.items()])  # creates a formatted str of the given options
     while True:
-        choice = input(f"Please choose one of the following options:\n{options}\n")
+        choice = input(f"Please press 'S' for signup or 'L' to log-in.\n").lower()
+        if len(choice) != 1 or choice not in {'s', 'l'}:
+            continue
+        elif choice == 's':
+            signup(conn)
+            break
+        elif choice == 'l':
+            login(conn)
+            break
+
+    options = '\n'.join(
+        [f'\t{key} - {value}' for key, value in OPTIONS.items()])  # creates a formatted str of the given options
+    while True:
+        choice = input(f"Please choose one of the following options:\n{options}\n").lower()
         if len(choice) != 1 or choice not in OPTIONS.keys():
             continue
         elif choice == 's':
             get_score(conn)
         elif choice == 'h':
             get_highscore(conn)
-        elif choice =='l':
+        elif choice == 'l':
             get_logged_users(conn)
-        elif choice =='p':
+        elif choice == 'p':
             play_question(conn)
         elif choice == 'q':
             break
