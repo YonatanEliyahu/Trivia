@@ -9,9 +9,9 @@ users_dict = {
 }
 
 questions_dict = {
-    2313: {"question": "How much is 2+2", "answers": ["3", "4", "2", "1"], "correct": 2},
-    4122: {"question": "What is the capital of France?", "answers": ["Lion", "Marseille", "Paris", "Montpellier"],
-           "correct": 3}
+    1: {"question": "How much is 2+2", "answers": ["3", "4", "2", "1"], "correct": 2},
+    2: {"question": "What is the capital of France?", "answers": ["Lion", "Marseille", "Paris", "Montpellier"],
+        "correct": 3}
 }
 
 
@@ -99,7 +99,6 @@ def create_users_table():
 
 def create_user_question_relation_table():
     conn, cursor = connect_to_db()
-
     # Create a table to store user-question relations
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS user_question_relation (
@@ -148,6 +147,20 @@ def load_user_data_from_db():
     return users_res_dict
 
 
+def create_user_data_in_db(username: str, password: str):
+    conn, cursor = connect_to_db()
+    try:
+        cursor.execute(
+            'INSERT INTO users_data (username, password,score) '
+            'VALUES (?, ?, ?)', (username, password, 0))
+
+    except sqlite3.IntegrityError:
+        raise sqlite3.IntegrityError
+    finally:
+        # Commit and close the connection
+        close_db_connection(conn)
+
+
 def update_user_data_in_db(user_data: tuple):
     conn, cursor = connect_to_db()
 
@@ -157,7 +170,7 @@ def update_user_data_in_db(user_data: tuple):
         WHERE username = ?
     ''', (user_data[1]['score'], user_data[0]))
 
-    for question_id in user_data[1]["questions_asked"]:  # Fix the loop syntax
+    for question_id in user_data[1]["questions_asked"]:
         try:
             cursor.execute(
                 'INSERT INTO user_question_relation (username, question_id) '
@@ -168,7 +181,6 @@ def update_user_data_in_db(user_data: tuple):
 
     # Commit and close the connection
     close_db_connection(conn)
-
 
 
 if __name__ == "__main__":
