@@ -20,6 +20,21 @@ CCCCCCCCCCCCCCCC|LLLL | MMM
 
 ### Client to Server (Client -> Server)
 
+#### SIGNUP
+
+Request for user sign up.
+
+**Message Structure**: `SIGNUP |UUUUUU#PPPPPP`
+
+- **UUUU**: Username.
+- **#**: Separator.
+- **PPP**: Password.
+
+Example:
+```plaintext
+SIGNUP           |0009|aaaa#bbbb
+```
+
 #### LOGIN
 
 Request for user login.
@@ -106,6 +121,17 @@ HIGHSCORE       |0000|
 ```
 
 ### Server to Client (Server -> Client)
+
+#### SIGNUP_OK_OK
+
+Response to SIGNUP indicating successful signup.
+
+**Message Structure**: `SIGNUP_OK |0000|`
+
+Example:
+```plaintext
+SIGNUP_OK        |0000|
+```
 
 #### LOGIN_OK
 

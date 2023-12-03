@@ -7,7 +7,6 @@ while the client provides the interface for users to interact with the game.
 
 ### Comming Up
 - Using API to get more questions
-- Sing up to the server
 
 ## Server
 
@@ -15,8 +14,10 @@ while the client provides the interface for users to interact with the game.
 
 - Socket-based communication
 - User authentication
+- Sign-up option
 - Score tracking
 - Trivia questions
+
 
 ### Technologies Used
 
@@ -50,6 +51,9 @@ while the client provides the interface for users to interact with the game.
 ## Communication Protocol
 
 The Trivia application uses a custom communication protocol between the server and clients. This protocol ensures seamless interaction and data exchange during the trivia game. Below is an overview of the key messages and their meanings:
+- **Login Message:**
+  - *Client to Server:* Initiates the sign-up process with a new username and password.
+  - *Server to Client:* Confirms successful sign-up or notifies of failure.
 
 - **Login Message:**
   - *Client to Server:* Initiates the login process with a username and password.
@@ -92,6 +96,7 @@ Please refer to the protocol definitions in the source code (.\chatlib\chatlib_R
 - Score checking
 - High score viewing
 - Trivia participation
+- - Sign-up option
 
 ### Technologies Used
 
