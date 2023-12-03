@@ -66,7 +66,7 @@ def error_and_exit(conn: socket, error_msg: str = "ERROR"):
 
 def signup(conn: socket):
     """
-    Receives a username and password,
+    Receives a username and password for a new user,
     then parses the data using chatlib.
     send the data to the server and wait for response.
     """
@@ -214,17 +214,27 @@ def get_logged_users(conn: socket):
 
 
 def main():
+    """
+    The main function to start the Trivia Client.
+
+    - Establishes a connection to the server using 'connect'.
+    - Prompts the user to sign up or log in.
+    - If the user chooses to sign up, calls the 'signup' function to create a new user.
+    - Calls the 'login' function to log in (either after signing up or directly).
+    - Displays a menu with options for the user, such as checking scores, viewing high scores, etc.
+    - Continues to prompt the user until they choose to quit.
+    """
     conn = connect()
     while True:
         choice = input(f"Please press 'S' for signup or 'L' to log-in.\n").lower()
         if len(choice) != 1 or choice not in {'s', 'l'}:
             continue
         elif choice == 's':
-            signup(conn) # sign up new user
+            signup(conn)  # sign up new user
             login(conn)
             break
         elif choice == 'l':
-            login(conn) # login to existing user
+            login(conn)  # login to existing user
             break
 
     options = '\n'.join(

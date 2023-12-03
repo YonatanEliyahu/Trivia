@@ -72,6 +72,9 @@ def recv_message_and_parse(conn: socket) -> (str, str):
 # Data Loader
 
 def load_databases():
+    """
+    Load users,question dictionaries from database for the server functionality.
+    """
     global users
     global questions
     users = load_user_data_from_db()
@@ -106,7 +109,17 @@ def create_random_question(conn: socket) -> (int, str, int):
     return question_num, question, correct
 
 
-def handle_answer_message(conn: socket):
+def handle_question_message(conn: socket):
+    """
+    Gets socket connection and checks if the user has unanswered questions,
+        -if there are unanswered questions, the user gets a question and waiting for the user response,
+            after the response the server will check the correctness of the answer and will send feedback.
+
+        - it there isn't unanswered question, the servers sends chatlib.PROTOCOL_SERVER["no_quest_msg"] to the user.
+
+    the function returns an indicator of success or failure
+    """
+
     global users
     global logged_users
 
@@ -203,7 +216,8 @@ def handle_signup_message(conn, data):
 
 def handle_logout_message(conn: socket):
     """
-    Closes the given socket (in later chapters, also remove user from logged_users dictionary)
+    Closes the given socket, and if there is a logged user related to this connection,
+     it will handle his logout and will update his data in the DB
     """
     global logged_users
     # Check if the user is logged in before attempting to delete
@@ -231,6 +245,17 @@ def handle_logged_users_message(conn: socket):
 
 
 def handle_getscore_message(conn: socket, req_type: int = 0):
+    """
+    Handles the client's request for score-related information.
+    0 for getting the current user's score, 1 for requesting the highscore table.
+
+    Example:
+    - For getting the current user's score:
+      handle_getscore_message(conn, req_type=0)
+
+    - For requesting the highscore table:
+      handle_getscore_message(conn, req_type=1)
+    """
     global users
     global logged_users
     if req_type == 0:  # get my score
@@ -282,7 +307,7 @@ def handle_client_message(conn: socket, cmd: str, data: str):
         handle_logged_users_message(conn)
 
     elif cmd == chatlib.PROTOCOL_CLIENT["get_question_msg"]:
-        status = handle_answer_message(conn)
+        status = handle_question_message(conn)
         if status != SUCCESS:  # ==FAIL or ==CONN_FAIL
             send_error(conn)
             if status == CONN_FAIL:
@@ -291,6 +316,15 @@ def handle_client_message(conn: socket, cmd: str, data: str):
 
 
 def handle_client(client_socket):
+    """
+    Handles communication with a connected client.
+    Continuously receives and processes messages from the client using the 'recv_message_and_parse' function.
+    Calls 'handle_client_message' to process the received command and data.
+
+    Exceptions:
+    - Catches socket errors and ConnectionResetError to handle client disconnection.
+    - Prints a message when a client disconnects and breaks out of the loop.
+    """
     while True:
         try:
             cmd, data = recv_message_and_parse(client_socket)
@@ -301,6 +335,15 @@ def handle_client(client_socket):
 
 
 def main():
+    """
+    The main function to start the Trivia Server.
+
+    - Prints a welcome message.
+    - Sets up the server socket using 'setup_socket'.
+    - Loads databases using 'load_databases'.
+    - Accepts incoming client connections in a loop.
+    - Spawns a new thread ('client_handler') to handle each connected client using 'handle_client'.
+    """
     print("Welcome to Trivia Server!")
     server_socket = setup_socket()
     load_databases()
