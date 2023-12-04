@@ -228,22 +228,22 @@ def main():
     - Continues to prompt the user until they choose to quit.
     """
     conn = connect()
-    while True:
-        choice = input(f"Please press 'S' for signup or 'L' to log-in.\n").lower()
-        if len(choice) != 1 or choice not in {'s', 'l'}:
-            continue
-        elif choice == 's':
-            signup(conn)  # sign up new user
-            login(conn)
-            break
-        elif choice == 'l':
-            login(conn)  # login to existing user
-            break
 
-    options = '\n'.join(
-        [f'\t{key} - {value}' for key, value in OPTIONS.items()])  # creates a formatted str of the given options
-    while True:
-        try:
+    try:
+        while True:
+            choice = input(f"Please press 'S' for signup or 'L' to log-in.\n").lower()
+            if len(choice) != 1 or choice not in {'s', 'l'}:
+                continue
+            elif choice == 's':
+                signup(conn)  # sign up new user
+                login(conn)
+                break
+            elif choice == 'l':
+                login(conn)  # login to an existing user
+                break
+
+        options = '\n'.join([f'\t{key} - {value}' for key, value in OPTIONS.items()])
+        while True:
             choice = input(f"Please choose one of the following options:\n{options}\n").lower()
             if len(choice) != 1 or choice not in OPTIONS.keys():
                 continue
@@ -257,14 +257,15 @@ def main():
                 play_question(conn)
             elif choice == 'q':
                 break
-        except (ConnectionResetError, KeyboardInterrupt):
-            print("ERROR: Connection Interrupted...")
-            break
-    try:
-        logout(conn)
-        conn.close()
-    except:  # connection may be close already
-        pass
+    except (ConnectionResetError, KeyboardInterrupt):
+        print("ERROR: Connection Interrupted...")
+    finally:
+        try:
+            logout(conn)
+            conn.close()
+        except:  # connection may be closed already
+            pass
+
 
 
 if __name__ == '__main__':
