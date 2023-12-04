@@ -9,13 +9,6 @@ users_dict = {
     "master": {"password": "master", "score": 200, "questions_asked": []}
 }
 
-# questions_dict = {
-#     1: {"question": "How much is 2+2", "answers": ["3", "4", "2", "1"], "correct": 2},
-#     2: {"question": "What is the capital of France?", "answers": ["Lion", "Marseille", "Paris", "Montpellier"],
-#         "correct": 3}
-# }
-
-
 def connect_to_db():
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()

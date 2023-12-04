@@ -400,6 +400,7 @@ def load_more_questions():
     - Adds the new questions to the trivia database.
     """
     global questions
+    logging.info(f"[SERVER] loading data from API to DB\n")
     start = max(questions.keys()) + 1
     new_questions = API_handler.load_question_with_api(start)
     new_questions = {key: value for key, value in new_questions.items() if value not in questions.values()}
@@ -433,7 +434,7 @@ def handle_server_manager_commands(server_conn: socket):
     global threads
     while True:
         # Your logic to handle server management commands
-        command = input("Enter server management command (load, kick, shutdown, etc.): ")
+        command = input("Enter server management command (load, kick, shutdown): ")
         if command == "load":
             load_more_questions()
         elif command == "kick":
@@ -478,16 +479,15 @@ def main():
 
     while not shutdown_server:
         try:
-            if server_socket.fileno() == CONN_FAIL:
-                client_socket, client_address = server_socket.accept()
-                connections[client_socket.fileno()] = client_socket
-                logging.info("Client connected")
+            client_socket, client_address = server_socket.accept()
+            connections[client_socket.fileno()] = client_socket
+            logging.info("Client connected")
 
-                client_handler_thread = threading.Thread(target=handle_client, args=(client_socket,))
-                threads.append(client_handler_thread)
-                client_handler_thread.start()
-        except Exception as e:
-            print(f"server is down  - {e}")
+            client_handler_thread = threading.Thread(target=handle_client, args=(client_socket,))
+            threads.append(client_handler_thread)
+            client_handler_thread.start()
+        except:
+            print(f"server is down")
 
 
 if __name__ == '__main__':
