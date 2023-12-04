@@ -1,4 +1,5 @@
 import sqlite3
+from API_handler import load_question_with_api
 
 DB_NAME = 'trivia_DB.db'
 
@@ -7,13 +8,6 @@ users_dict = {
     "yossi": {"password": "123", "score": 50, "questions_asked": []},
     "master": {"password": "master", "score": 200, "questions_asked": []}
 }
-
-questions_dict = {
-    1: {"question": "How much is 2+2", "answers": ["3", "4", "2", "1"], "correct": 2},
-    2: {"question": "What is the capital of France?", "answers": ["Lion", "Marseille", "Paris", "Montpellier"],
-        "correct": 3}
-}
-
 
 def connect_to_db():
     conn = sqlite3.connect(DB_NAME)
@@ -42,8 +36,9 @@ def create_question_table():
     ''')
 
     # Insert data into the table
+    questions_api_dict = load_question_with_api()
     try:
-        for q_num, q_data in questions_dict.items():
+        for q_num, q_data in questions_api_dict.items():
             cursor.execute(
                 'INSERT INTO questions (id, question,answer1,answer2,answer3,answer4,currectAnswer) '
                 'VALUES (?, ?, ?, ?, ?, ?, ?)', (
@@ -118,6 +113,21 @@ def create_user_question_relation_table():
                     'INSERT INTO user_question_relation (username, question_id) '
                     'VALUES (?, ?)', (username, questions_id))
     except:  # data already in table
+        pass
+    finally:
+        # Commit and close the connection
+        close_db_connection(conn)
+
+def add_questions_to_DB(questions_dict : dict):
+    conn, cursor = connect_to_db()
+    try:
+        for q_num, q_data in questions_dict.items():
+            cursor.execute(
+                'INSERT INTO questions (id, question,answer1,answer2,answer3,answer4,currectAnswer) '
+                'VALUES (?, ?, ?, ?, ?, ?, ?)', (
+                    q_num, q_data["question"], q_data["answers"][0], q_data["answers"][1], q_data["answers"][2],
+                    q_data["answers"][3], q_data["correct"]))
+    except:
         pass
     finally:
         # Commit and close the connection

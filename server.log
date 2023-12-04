@@ -1,0 +1,73 @@
+2023-12-04 18:53:06,936 [INFO] - Starting up server ...
+2023-12-04 18:53:06,937 [INFO] - Server is up and listening ...
+2023-12-04 18:53:09,483 [INFO] - Client connected
+2023-12-04 18:53:14,715 [INFO] - [CLIENT] b'LOGIN           |0009|twst#twst'
+2023-12-04 18:53:14,716 [INFO] - [SERVER] ERROR           |0034|username or password are incorrect
+2023-12-04 18:53:14,716 [ERROR] - username or password are incorrect
+2023-12-04 18:53:20,235 [INFO] - [CLIENT] b'LOGIN           |0009|test#test'
+2023-12-04 18:53:20,236 [INFO] - [SERVER] LOGIN_OK        |0000|
+2023-12-04 18:53:20,236 [INFO] - test logged in successfully..
+2023-12-04 18:53:22,367 [INFO] - [TEST] b'MY_SCORE        |0000|'
+2023-12-04 18:53:22,368 [INFO] - [SERVER] YOUR_SCORE      |0001|0
+2023-12-04 18:53:23,783 [INFO] - [TEST] b'HIGHSCORE       |0000|'
+2023-12-04 18:53:23,783 [INFO] - [SERVER] ALL_SCORE       |0032|	master: 200
+	yossi: 50
+	test: 0
+2023-12-04 18:53:25,862 [INFO] - [TEST] b'GET_QUESTION    |0000|'
+2023-12-04 18:53:25,863 [INFO] - [SERVER] YOUR_QUESTION   |0160|38#Virgin Trains, Virgin Atlantic and Virgin Racing, are all companies owned by which famous entrepreneur?   #Alan Sugar#Richard Branson#Bill Gates#Donald Trump
+2023-12-04 18:53:32,392 [INFO] - [TEST] b'SEND_ANSWER     |0001|3'
+2023-12-04 18:53:32,392 [INFO] - [SERVER] WRONG_ANSWER    |0001|2
+2023-12-04 18:53:34,509 [INFO] - [TEST] b'GET_QUESTION    |0000|'
+2023-12-04 18:53:34,509 [INFO] - [SERVER] YOUR_QUESTION   |0101|17#When Gmail first launched, how much storage did it provide for your email?#Unlimited#5GB#1GB#512MB
+2023-12-04 18:53:43,817 [INFO] - [TEST] b'SEND_ANSWER     |0001|4'
+2023-12-04 18:53:43,817 [INFO] - [SERVER] WRONG_ANSWER    |0001|3
+2023-12-04 18:53:46,027 [INFO] - [TEST] b'GET_QUESTION    |0000|'
+2023-12-04 18:53:46,028 [INFO] - [SERVER] YOUR_QUESTION   |0095|26#Jaguar Cars was previously owned by which car manfacturer?#General Motors#Chrysler#Ford#Fiat
+2023-12-04 18:53:53,015 [INFO] - [TEST] b'SEND_ANSWER     |0001|2'
+2023-12-04 18:53:53,016 [INFO] - [SERVER] WRONG_ANSWER    |0001|3
+2023-12-04 18:53:55,324 [INFO] - [TEST] b'GET_QUESTION    |0000|'
+2023-12-04 18:53:55,324 [INFO] - [SERVER] YOUR_QUESTION   |0064|49#What is the capital of Spain?#Madrid#Barcelona#Sevilla#Toledo
+2023-12-04 18:53:57,944 [INFO] - [TEST] b'SEND_ANSWER     |0001|1'
+2023-12-04 18:53:57,944 [INFO] - [SERVER] CORRECT_ANSWER  |0000|
+2023-12-04 18:54:01,067 [INFO] - [TEST] b'LOGOUT          |0000|'
+2023-12-04 18:54:01,067 [INFO] - logging [TEST] out at ('127.0.0.1', 54662)...
+2023-12-04 18:54:01,078 [ERROR] - Client disconnected
+2023-12-04 18:54:04,866 [INFO] - Client connected
+2023-12-04 18:54:13,177 [INFO] - [CLIENT] b'SIGNUP          |0015|Yonatan#Eliyahu'
+2023-12-04 18:54:13,177 [INFO] - Yonatan signed up successfully..
+2023-12-04 18:54:13,189 [INFO] - [SERVER] SIGNUP_OK       |0000|
+2023-12-04 18:54:22,358 [INFO] - [CLIENT] b'LOGIN           |0015|Yonatan#Eliyahu'
+2023-12-04 18:54:22,359 [INFO] - [SERVER] LOGIN_OK        |0000|
+2023-12-04 18:54:22,359 [INFO] - Yonatan logged in successfully..
+2023-12-04 18:54:24,607 [INFO] - [YONATAN] b'HIGHSCORE       |0000|'
+2023-12-04 18:54:24,608 [INFO] - [SERVER] ALL_SCORE       |0044|	master: 200
+	yossi: 50
+	test: 5
+	Yonatan: 0
+2023-12-04 18:54:28,236 [INFO] - [YONATAN] b'GET_QUESTION    |0000|'
+2023-12-04 18:54:28,237 [INFO] - [SERVER] YOUR_QUESTION   |0075|1#What is the standard atomic weight of a Plutonium nucleus?#94#244#481#128
+2023-12-04 18:54:34,342 [INFO] - [YONATAN] b'SEND_ANSWER     |0001|3'
+2023-12-04 18:54:34,342 [INFO] - [SERVER] WRONG_ANSWER    |0001|2
+2023-12-04 18:54:36,629 [INFO] - [YONATAN] b'GET_QUESTION    |0000|'
+2023-12-04 18:54:36,629 [INFO] - [SERVER] YOUR_QUESTION   |0078|2#What is the official language of Brazil?#Portugese#Brazilian#Spanish#English
+2023-12-04 18:54:40,399 [INFO] - [YONATAN] b'SEND_ANSWER     |0001|1'
+2023-12-04 18:54:40,399 [INFO] - [SERVER] CORRECT_ANSWER  |0000|
+2023-12-04 18:54:51,579 [INFO] - Performing server management task: Kicking user...
+2023-12-04 18:54:55,011 [INFO] - logging [YONATAN] out at ('127.0.0.1', 54664)...
+2023-12-04 18:54:55,031 [INFO] - [SERVER] kicked Yonatan out of the server
+2023-12-04 18:54:55,031 [ERROR] - Client disconnected
+2023-12-04 18:55:02,643 [INFO] - Client connected
+2023-12-04 18:55:10,686 [INFO] - [CLIENT] b'LOGIN           |0015|Yonatan#Eliyahu'
+2023-12-04 18:55:10,687 [INFO] - [SERVER] LOGIN_OK        |0000|
+2023-12-04 18:55:10,687 [INFO] - Yonatan logged in successfully..
+2023-12-04 18:55:13,557 [INFO] - [YONATAN] b'HIGHSCORE       |0000|'
+2023-12-04 18:55:13,557 [INFO] - [SERVER] ALL_SCORE       |0044|	master: 200
+	yossi: 50
+	test: 5
+	Yonatan: 5
+2023-12-04 18:55:26,503 [DEBUG] - Starting new HTTPS connection (1): opentdb.com:443
+2023-12-04 18:55:27,184 [DEBUG] - https://opentdb.com:443 "GET /api.php?amount=50&difficulty=easy&type=multiple HTTP/1.1" 200 None
+2023-12-04 18:55:38,498 [INFO] - logging [YONATAN] out at ('127.0.0.1', 54666)...
+2023-12-04 18:55:38,500 [INFO] - [SERVER] SHUTDOWN
+
+2023-12-04 18:55:38,501 [ERROR] - Client disconnected

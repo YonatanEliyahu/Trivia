@@ -1,5 +1,8 @@
 import socket
 import threading
+import logging
+import API_handler
+import trivia_DB
 from chatlib_files import chatlib
 from chatlib_files.chatlib import MSG_MAX_SIZE
 from random import shuffle as shuffle
@@ -16,10 +19,20 @@ FAIL = -2  # non connection failure indicator
 users = {}
 questions = {}
 logged_users = {}  # a dictionary of client file descriptor to usernames
+connections = {}  # list of connected client file descriptor to socket object
 
 allowed_login_chars = set(chr(i) for i in range(ord('a'), ord('z') + 1)).union(
     set(chr(i) for i in range(ord('A'), ord('Z') + 1))).union(
     {'!', '@', '_', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9'})
+
+# Set up logging to a file
+logging.basicConfig(filename='server.log', level=logging.DEBUG,
+                    format='%(asctime)s [%(levelname)s] - %(message)s')
+
+# Define a global flag to signal server shutdown
+shutdown_server = False
+
+threads = []
 
 ERROR_MSG = "Error! "
 SERVER_PORT = 5678
@@ -30,14 +43,14 @@ SERVER_IP = "127.0.0.1"
 def setup_socket() -> socket:
     """
     Creates new listening socket and returns it
-    loads the users from data base
+    loads the users from database
     Returns: the socket object
     """
-    print("Starting up server ...")
+    logging.info("Starting up server ...")
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.bind((SERVER_IP, SERVER_PORT))
     sock.listen()
-    print("Server is up and listening ...")
+    logging.info("Server is up and listening ...")
 
     return sock
 
@@ -50,7 +63,7 @@ def build_and_send_message(conn: socket, code: str, data: str = ""):
     """
     formatted_msg = chatlib.build_message(code, data)
     conn.send(formatted_msg.encode())
-    print(f"[SERVER] {formatted_msg}")
+    logging.info(f"[SERVER] {formatted_msg}")
 
 
 def recv_message_and_parse(conn: socket) -> (str, str):
@@ -63,7 +76,10 @@ def recv_message_and_parse(conn: socket) -> (str, str):
     try:
         full_msg = conn.recv(MSG_MAX_SIZE)
         cmd, data = chatlib.parse_message(full_msg.decode())
-        print(f"[CLIENT] {full_msg}")
+        if conn.fileno() not in logged_users.keys():
+            logging.info(f"[CLIENT] {full_msg}")
+        else:
+            logging.info(f"[{logged_users[conn.fileno()].upper()}] {full_msg}")
         return cmd, data
     except:
         return None, None
@@ -156,9 +172,9 @@ def handle_login_message(conn, data):
     """
     Gets socket and message data of login message. Checks  user and pass exists and match.
     If not - sends error and finished. If all ok, sends OK message and adds user and address to logged_users
-    Recieves: socket, message code and data
+    Receives: socket, message code and data
     """
-    global users  # This is needed to access the same users dictionary from all functions
+    global users
     global logged_users
     user_info = chatlib.split_data(data, 1)
     if user_info[0] == chatlib.ERROR_RETURN:
@@ -175,7 +191,7 @@ def handle_login_message(conn, data):
         if users[user_info[0]]["password"] == user_info[1]:
             build_and_send_message(conn, chatlib.PROTOCOL_SERVER["login_ok_msg"])
             logged_users[conn.fileno()] = user_info[0]
-            print(f"{user_info[0]} logged in successfully..")
+            logging.info(f"{user_info[0]} logged in successfully..")
             return  # logged in successfully
     # failed to log in
     send_error(conn, "username or password are incorrect")
@@ -187,12 +203,12 @@ def handle_signup_message(conn, data):
     If not - sends error and finished. If all ok, sends OK message and adds user to users list and DB
     Recieves: socket, message code and data
     """
-    global users  # This is needed to access the same users dictionary from all functions
+    global users
     user_info = chatlib.split_data(data, 1)
     if user_info[0] == chatlib.ERROR_RETURN:
         send_error(conn, "username or password are incorrect")
         return
-    if len(user_info[0]) < 6 or len(user_info[0]) > 15 or len(user_info[1]) < 6 or len(user_info[1]) >15:
+    if len(user_info[0]) < 6 or len(user_info[0]) > 15 or len(user_info[1]) < 6 or len(user_info[1]) > 15:
         send_error(conn, "username or password are too short/long")
         return
     for c in str(user_info[0]) + str(user_info[1]):
@@ -203,7 +219,7 @@ def handle_signup_message(conn, data):
         send_error(conn, "username already exists incorrect")
         return
     users[user_info[0]] = {"password": user_info[1], "score": 0, "questions_asked": []}
-    print(f"{user_info[0]} signed up successfully..")
+    logging.info(f"{user_info[0]} signed up successfully..")
     try:  # DB failure
         create_user_data_in_db(user_info[0], user_info[1])
     except:
@@ -222,15 +238,16 @@ def handle_logout_message(conn: socket):
     global logged_users
     # Check if the user is logged in before attempting to delete
     if conn.fileno() in logged_users:
-        print(f"logging [{logged_users[conn.fileno()].upper()}] out at {conn.getpeername()}...")
+        logging.info(f"logging [{logged_users[conn.fileno()].upper()}] out at {conn.getpeername()}...")
 
         user = (f'{logged_users[conn.fileno()]}', users[logged_users[conn.fileno()]])
         update_user_data_in_db(user)
         del logged_users[conn.fileno()]
 
     else:
-        print(f"closing connection at {conn.getpeername()}...")
+        logging.info(f"closing connection at {conn.getpeername()}...")
 
+    del connections[conn.fileno()]
     conn.close()
 
 
@@ -275,6 +292,7 @@ def send_error(conn: socket, error_msg: str = ERROR_MSG):
     Receives: socket, message error string from called function
     """
     build_and_send_message(conn, chatlib.PROTOCOL_SERVER["error_msg"], error_msg)
+    logging.error(error_msg)
 
 
 def handle_client_message(conn: socket, cmd: str, data: str):
@@ -330,8 +348,105 @@ def handle_client(client_socket):
             cmd, data = recv_message_and_parse(client_socket)
             handle_client_message(client_socket, cmd, data)
         except (socket.error, ConnectionResetError):
-            print("Client disconnected")
+            logging.error("Client disconnected")
             break
+
+
+def kick_user_by_pick():
+    """
+    Kicks a user out of the server based on user input.
+
+    - Prints a list of currently logged-in users.
+    - Asks the server manager to pick a user to kick.
+    - Sends a logout message to the selected user's socket.
+    """
+    logging.info("Performing server management task: Kicking user...")
+    users_str = '\n'.join([f'{i}. {user}' for i, user in enumerate(logged_users.values(), start=1)])
+    pick = input(f"Please pick a user to kick: \n{users_str}\n")
+    if pick == None:
+        print("Error")
+        return
+    if pick not in logged_users.values():
+        print(f"No such user named {pick}")
+        return
+    # send message to client
+    for key in logged_users.keys():
+        if pick == logged_users[key]:
+            handle_logout_message(connections[key])
+            logging.info(f"[SERVER] kicked {pick} out of the server")
+            return
+
+
+def kick_all_users():
+    """
+    Kicks all currently logged-in users out of the server.
+
+    - Retrieves a list of sockets of logged-in users.
+    - Sends a logout message to each logged-in user's socket.
+    """
+    logged_users_socket_lst = list(connections.values())
+
+    for sock in logged_users_socket_lst:
+        handle_logout_message(sock)
+
+
+def load_more_questions():
+    """
+    Loads more questions from an API and adds them to the trivia database.
+
+    - Retrieves the current highest question ID.
+    - Calls 'API_handler.load_question_with_api' to get new questions.
+    - Filters out questions that are already in the database.
+    - Adds the new questions to the trivia database.
+    """
+    global questions
+    logging.info(f"[SERVER] loading data from API to DB\n")
+    start = max(questions.keys()) + 1
+    new_questions = API_handler.load_question_with_api(start)
+    new_questions = {key: value for key, value in new_questions.items() if value not in questions.values()}
+    trivia_DB.add_questions_to_DB(new_questions)
+    questions = load_question_table_from_db()
+
+
+def handle_server_shutdown():
+    """
+    Initiates the server shutdown process.
+
+    - Sets the 'shutdown_server' flag to True.
+    - Kicks all currently logged-in users out of the server.
+    - Logs the server shutdown event.
+    """
+    global shutdown_server
+    print("Shutting down the server...")
+    shutdown_server = True
+    kick_all_users()
+    logging.info(f"[SERVER] SHUTDOWN\n")
+
+
+def handle_server_manager_commands(server_conn: socket):
+    """
+    Functionality to handle server management commands.
+    This function runs in a separate thread.
+
+    Raises:
+    - SystemExit: Raised to close the current thread.
+    """
+    global threads
+    while True:
+        # Your logic to handle server management commands
+        command = input("Enter server management command (load, kick, shutdown): ")
+        if command == "load":
+            load_more_questions()
+        elif command == "kick":
+            kick_user_by_pick()
+        elif command == "shutdown":
+            handle_server_shutdown()
+            server_conn.close()
+            for t in threads:
+                t.join()
+            raise SystemExit  # close current thread
+        else:
+            print("Unknown command. Try again.")
 
 
 def main():
@@ -341,19 +456,38 @@ def main():
     - Prints a welcome message.
     - Sets up the server socket using 'setup_socket'.
     - Loads databases using 'load_databases'.
-    - Accepts incoming client connections in a loop.
-    - Spawns a new thread ('client_handler') to handle each connected client using 'handle_client'.
+    - Spawns two threads:
+      - 'manager_commands_thread' for handling server management commands using 'handle_server_manager_commands'.
+      - 'client_handler_thread' to handle each connected client using 'handle_client'.
+    - Waits for both threads to finish before cleaning up resources and closing the server.
+
+    Global Variables:
+    - connections: A dictionary to store client connections.
+    - threads: A list to store active threads.
+    - shutdown_server: A flag to signal the server shutdown.
+
+    Raises:
+    - Exception: Handles various exceptions that may occur during server operation.
     """
+    global connections
+    global threads
     print("Welcome to Trivia Server!")
     server_socket = setup_socket()
     load_databases()
+    manager_commands_thread = threading.Thread(target=handle_server_manager_commands, args=(server_socket,))
+    manager_commands_thread.start()
 
-    while True:
-        client_socket, client_address = server_socket.accept()
-        print("Client connected")
+    while not shutdown_server:
+        try:
+            client_socket, client_address = server_socket.accept()
+            connections[client_socket.fileno()] = client_socket
+            logging.info("Client connected")
 
-        client_handler = threading.Thread(target=handle_client, args=(client_socket,))
-        client_handler.start()
+            client_handler_thread = threading.Thread(target=handle_client, args=(client_socket,))
+            threads.append(client_handler_thread)
+            client_handler_thread.start()
+        except:
+            print(f"server is down")
 
 
 if __name__ == '__main__':
