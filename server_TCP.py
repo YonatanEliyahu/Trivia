@@ -6,8 +6,6 @@ import trivia_DB
 from chatlib_files import chatlib
 from chatlib_files.chatlib import MSG_MAX_SIZE
 from random import shuffle as shuffle
-from API_handler import load_question_with_api
-from trivia_DB import add_questions_to_DB
 from trivia_DB import load_question_table_from_db
 from trivia_DB import load_user_data_from_db
 from trivia_DB import update_user_data_in_db
@@ -22,7 +20,6 @@ users = {}
 questions = {}
 logged_users = {}  # a dictionary of client file descriptor to usernames
 connections = {}  # list of connected client file descriptor to socket object
-threads =[]
 
 allowed_login_chars = set(chr(i) for i in range(ord('a'), ord('z') + 1)).union(
     set(chr(i) for i in range(ord('A'), ord('Z') + 1))).union(
@@ -44,7 +41,7 @@ SERVER_IP = "127.0.0.1"
 def setup_socket() -> socket:
     """
     Creates new listening socket and returns it
-    loads the users from data base
+    loads the users from database
     Returns: the socket object
     """
     logging.info("Starting up server ...")
@@ -173,9 +170,9 @@ def handle_login_message(conn, data):
     """
     Gets socket and message data of login message. Checks  user and pass exists and match.
     If not - sends error and finished. If all ok, sends OK message and adds user and address to logged_users
-    Recieves: socket, message code and data
+    Receives: socket, message code and data
     """
-    global users  # This is needed to access the same users dictionary from all functions
+    global users
     global logged_users
     user_info = chatlib.split_data(data, 1)
     if user_info[0] == chatlib.ERROR_RETURN:
@@ -204,7 +201,7 @@ def handle_signup_message(conn, data):
     If not - sends error and finished. If all ok, sends OK message and adds user to users list and DB
     Recieves: socket, message code and data
     """
-    global users  # This is needed to access the same users dictionary from all functions
+    global users
     user_info = chatlib.split_data(data, 1)
     if user_info[0] == chatlib.ERROR_RETURN:
         send_error(conn, "username or password are incorrect")
@@ -388,14 +385,12 @@ def load_more_questions():
 
 
 def handle_server_shutdown():
-    global threads
     global shutdown_server
     print("Shutting down the server...")
     kick_all_users()
     logging.info(f"[SERVER] SHUTDOWN")
     shutdown_server.set()
-    for mthread in threads:
-        mthread.join()
+
 
 def handle_server_manager_commands():
     """
@@ -418,7 +413,6 @@ def handle_server_manager_commands():
 
 def main():
     global connections
-    global threads
     """
     The main function to start the Trivia Server.
 
@@ -435,16 +429,14 @@ def main():
     load_databases()
     try:
         manager_commands_thread = threading.Thread(target=handle_server_manager_commands)
-        threads.append(manager_commands_thread)
         manager_commands_thread.start()
 
         while True:
             client_socket, client_address = server_socket.accept()
-            connections[client_socket.fileno()] = (client_socket)
+            connections[client_socket.fileno()] = client_socket
             logging.info("Client connected")
 
             client_handler = threading.Thread(target=handle_client, args=(client_socket,))
-            threads.append(client_handler)
             client_handler.start()
 
     except KeyboardInterrupt:
