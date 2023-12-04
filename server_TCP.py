@@ -1,7 +1,6 @@
 import socket
 import threading
 import logging
-
 import API_handler
 import trivia_DB
 from chatlib_files import chatlib
@@ -23,6 +22,7 @@ users = {}
 questions = {}
 logged_users = {}  # a dictionary of client file descriptor to usernames
 connections = {}  # list of connected client file descriptor to socket object
+threads =[]
 
 allowed_login_chars = set(chr(i) for i in range(ord('a'), ord('z') + 1)).union(
     set(chr(i) for i in range(ord('A'), ord('Z') + 1))).union(
@@ -378,23 +378,24 @@ def kick_all_users():
         handle_logout_message(sock)
 
 
-def handle_server_shutdown():
-    global shutdown_server
-    print("Shutting down the server...")
-    kick_all_users()
-    logging.info(f"[SERVER] SHUTDOWN")
-    shutdown_server.set()
-
-
 def load_more_questions():
     global questions
     start = max(questions.keys()) + 1
-    new_questions = API_hendler.load_question_with_api(start)
+    new_questions = API_handler.load_question_with_api(start)
     new_questions = {key: value for key, value in new_questions.items() if value not in questions.values()}
     trivia_DB.add_questions_to_DB(new_questions)
     questions = load_question_table_from_db()
 
 
+def handle_server_shutdown():
+    global threads
+    global shutdown_server
+    print("Shutting down the server...")
+    kick_all_users()
+    logging.info(f"[SERVER] SHUTDOWN")
+    shutdown_server.set()
+    for mthread in threads:
+        mthread.join()
 
 def handle_server_manager_commands():
     """
@@ -417,6 +418,7 @@ def handle_server_manager_commands():
 
 def main():
     global connections
+    global threads
     """
     The main function to start the Trivia Server.
 
@@ -433,6 +435,7 @@ def main():
     load_databases()
     try:
         manager_commands_thread = threading.Thread(target=handle_server_manager_commands)
+        threads.append(manager_commands_thread)
         manager_commands_thread.start()
 
         while True:
@@ -441,6 +444,7 @@ def main():
             logging.info("Client connected")
 
             client_handler = threading.Thread(target=handle_client, args=(client_socket,))
+            threads.append(client_handler)
             client_handler.start()
 
     except KeyboardInterrupt:
