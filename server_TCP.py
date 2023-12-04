@@ -1,9 +1,14 @@
 import socket
 import threading
 import logging
+
+import API_handler
+import trivia_DB
 from chatlib_files import chatlib
 from chatlib_files.chatlib import MSG_MAX_SIZE
 from random import shuffle as shuffle
+from API_handler import load_question_with_api
+from trivia_DB import add_questions_to_DB
 from trivia_DB import load_question_table_from_db
 from trivia_DB import load_user_data_from_db
 from trivia_DB import update_user_data_in_db
@@ -26,6 +31,9 @@ allowed_login_chars = set(chr(i) for i in range(ord('a'), ord('z') + 1)).union(
 # Set up logging to a file
 logging.basicConfig(filename='server.log', level=logging.DEBUG,
                     format='%(asctime)s [%(levelname)s] - %(message)s')
+
+# Define a global flag to signal server shutdown
+shutdown_server = threading.Event()
 
 ERROR_MSG = "Error! "
 SERVER_PORT = 5678
@@ -345,6 +353,49 @@ def handle_client(client_socket):
             break
 
 
+def kick_user_by_pick():
+    print("Performing server management task: Kicking user...")
+    users_str = '\n'.join([f'{i}. {user}' for i, user in enumerate(logged_users.values(), start=1)])
+    pick = input(f"Please pick a user to kick: \n{users_str}\n")
+    if pick == None:
+        print("Error")
+        return
+    if pick not in logged_users.values():
+        print(f"No such user named {pick}")
+        return
+    # send message to client
+    for key in logged_users.keys():
+        if pick == logged_users[key]:
+            handle_logout_message(connections[key])
+            logging.info(f"[SERVER] kicked {pick} out of the server")
+            return
+
+
+def kick_all_users():
+    logged_users_socket_lst = list(connections.values())
+
+    for sock in logged_users_socket_lst:
+        handle_logout_message(sock)
+
+
+def handle_server_shutdown():
+    global shutdown_server
+    print("Shutting down the server...")
+    kick_all_users()
+    logging.info(f"[SERVER] SHUTDOWN")
+    shutdown_server.set()
+
+
+def load_more_questions():
+    global questions
+    start = max(questions.keys()) + 1
+    new_questions = API_hendler.load_question_with_api(start)
+    new_questions = {key: value for key, value in new_questions.items() if value not in questions.values()}
+    trivia_DB.add_questions_to_DB(new_questions)
+    questions = load_question_table_from_db()
+
+
+
 def handle_server_manager_commands():
     """
     Functionality to handle server management commands.
@@ -354,26 +405,11 @@ def handle_server_manager_commands():
         # Your logic to handle server management commands
         command = input("Enter server management command (load, kick, shutdown, etc.): ")
         if command == "load":
-            # Your logic to load questions or other functionalities
-            print("Performing server management task: Loading...")
+            load_more_questions()
         elif command == "kick":
-            print("Performing server management task: Kicking user...")
-            users_str = '\n'.join([f'{i}. {user}' for i, user in enumerate(logged_users.values(),start=1)])
-            pick = input(f"Please pick a user to kick: \n{users_str}\n")
-            if pick == None:
-                print("Error")
-                continue
-            if pick not in logged_users.values():
-                print(f"No such user named {pick}")
-                continue
-            #send message to client
-            for key in logged_users.keys():
-                if pick == logged_users[key]:
-                    handle_logout_message(connections[key])
-                    break
+            kick_user_by_pick()
         elif command == "shutdown":
-            print("Performing server management task: Shutting down server...")
-            # Your logic to gracefully shut down the server
+            handle_server_shutdown()
             break
         else:
             print("Unknown command. Try again.")
@@ -387,23 +423,29 @@ def main():
     - Prints a welcome message.
     - Sets up the server socket using 'setup_socket'.
     - Loads databases using 'load_databases'.
-    - Accepts incoming client connections in a loop.
-    - Spawns a new thread ('client_handler') to handle each connected client using 'handle_client'.
+    - Spawns two threads:
+      - 'manager_commands_thread' for handling server management commands using 'handle_server_manager_commands'.
+      - 'client_handler_thread' to handle each connected client using 'handle_client'.
+    - Waits for both threads to finish before cleaning up resources and closing the server.
     """
     print("Welcome to Trivia Server!")
     server_socket = setup_socket()
     load_databases()
+    try:
+        manager_commands_thread = threading.Thread(target=handle_server_manager_commands)
+        manager_commands_thread.start()
 
-    manager_commands_thread = threading.Thread(target=handle_server_manager_commands)
-    manager_commands_thread.start()
+        while True:
+            client_socket, client_address = server_socket.accept()
+            connections[client_socket.fileno()] = (client_socket)
+            logging.info("Client connected")
 
-    while True:
-        client_socket, client_address = server_socket.accept()
-        connections[client_socket.fileno()]=(client_socket)
-        logging.info("Client connected")
+            client_handler = threading.Thread(target=handle_client, args=(client_socket,))
+            client_handler.start()
 
-        client_handler = threading.Thread(target=handle_client, args=(client_socket,))
-        client_handler.start()
+    except KeyboardInterrupt:
+        server_socket.close()
+        print("server closed")
 
 
 if __name__ == '__main__':
