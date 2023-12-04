@@ -30,7 +30,9 @@ logging.basicConfig(filename='server.log', level=logging.DEBUG,
                     format='%(asctime)s [%(levelname)s] - %(message)s')
 
 # Define a global flag to signal server shutdown
-shutdown_server = threading.Event()
+shutdown_server = False
+
+threads = []
 
 ERROR_MSG = "Error! "
 SERVER_PORT = 5678
@@ -387,16 +389,17 @@ def load_more_questions():
 def handle_server_shutdown():
     global shutdown_server
     print("Shutting down the server...")
+    shutdown_server = True
     kick_all_users()
-    logging.info(f"[SERVER] SHUTDOWN")
-    shutdown_server.set()
+    logging.info(f"[SERVER] SHUTDOWN\n")
 
 
-def handle_server_manager_commands():
+def handle_server_manager_commands(server_conn: socket):
     """
     Functionality to handle server management commands.
     This function can run in a separate thread.
     """
+    global threads
     while True:
         # Your logic to handle server management commands
         command = input("Enter server management command (load, kick, shutdown, etc.): ")
@@ -406,13 +409,15 @@ def handle_server_manager_commands():
             kick_user_by_pick()
         elif command == "shutdown":
             handle_server_shutdown()
-            break
+            server_conn.close()
+            for t in threads:
+                t.join()
+            raise SystemExit  # close current thread
         else:
             print("Unknown command. Try again.")
 
 
 def main():
-    global connections
     """
     The main function to start the Trivia Server.
 
@@ -424,24 +429,26 @@ def main():
       - 'client_handler_thread' to handle each connected client using 'handle_client'.
     - Waits for both threads to finish before cleaning up resources and closing the server.
     """
+    global connections
+    global threads
     print("Welcome to Trivia Server!")
     server_socket = setup_socket()
     load_databases()
-    try:
-        manager_commands_thread = threading.Thread(target=handle_server_manager_commands)
-        manager_commands_thread.start()
+    manager_commands_thread = threading.Thread(target=handle_server_manager_commands, args=(server_socket,))
+    manager_commands_thread.start()
 
-        while True:
-            client_socket, client_address = server_socket.accept()
-            connections[client_socket.fileno()] = client_socket
-            logging.info("Client connected")
+    while not shutdown_server:
+        try:
+            if server_socket.fileno() == CONN_FAIL:
+                client_socket, client_address = server_socket.accept()
+                connections[client_socket.fileno()] = client_socket
+                logging.info("Client connected")
 
-            client_handler = threading.Thread(target=handle_client, args=(client_socket,))
-            client_handler.start()
-
-    except KeyboardInterrupt:
-        server_socket.close()
-        print("server closed")
+                client_handler = threading.Thread(target=handle_client, args=(client_socket,))
+                threads.append(client_handler)
+                client_handler.start()
+        except Exception as e:
+            print(f"server is down  - {e}")
 
 
 if __name__ == '__main__':
