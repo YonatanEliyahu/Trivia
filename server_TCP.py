@@ -353,7 +353,14 @@ def handle_client(client_socket):
 
 
 def kick_user_by_pick():
-    print("Performing server management task: Kicking user...")
+    """
+    Kicks a user out of the server based on user input.
+
+    - Prints a list of currently logged-in users.
+    - Asks the server manager to pick a user to kick.
+    - Sends a logout message to the selected user's socket.
+    """
+    logging.info("Performing server management task: Kicking user...")
     users_str = '\n'.join([f'{i}. {user}' for i, user in enumerate(logged_users.values(), start=1)])
     pick = input(f"Please pick a user to kick: \n{users_str}\n")
     if pick == None:
@@ -371,6 +378,12 @@ def kick_user_by_pick():
 
 
 def kick_all_users():
+    """
+    Kicks all currently logged-in users out of the server.
+
+    - Retrieves a list of sockets of logged-in users.
+    - Sends a logout message to each logged-in user's socket.
+    """
     logged_users_socket_lst = list(connections.values())
 
     for sock in logged_users_socket_lst:
@@ -378,6 +391,14 @@ def kick_all_users():
 
 
 def load_more_questions():
+    """
+    Loads more questions from an API and adds them to the trivia database.
+
+    - Retrieves the current highest question ID.
+    - Calls 'API_handler.load_question_with_api' to get new questions.
+    - Filters out questions that are already in the database.
+    - Adds the new questions to the trivia database.
+    """
     global questions
     start = max(questions.keys()) + 1
     new_questions = API_handler.load_question_with_api(start)
@@ -387,6 +408,13 @@ def load_more_questions():
 
 
 def handle_server_shutdown():
+    """
+    Initiates the server shutdown process.
+
+    - Sets the 'shutdown_server' flag to True.
+    - Kicks all currently logged-in users out of the server.
+    - Logs the server shutdown event.
+    """
     global shutdown_server
     print("Shutting down the server...")
     shutdown_server = True
@@ -397,7 +425,10 @@ def handle_server_shutdown():
 def handle_server_manager_commands(server_conn: socket):
     """
     Functionality to handle server management commands.
-    This function can run in a separate thread.
+    This function runs in a separate thread.
+
+    Raises:
+    - SystemExit: Raised to close the current thread.
     """
     global threads
     while True:
@@ -428,6 +459,14 @@ def main():
       - 'manager_commands_thread' for handling server management commands using 'handle_server_manager_commands'.
       - 'client_handler_thread' to handle each connected client using 'handle_client'.
     - Waits for both threads to finish before cleaning up resources and closing the server.
+
+    Global Variables:
+    - connections: A dictionary to store client connections.
+    - threads: A list to store active threads.
+    - shutdown_server: A flag to signal the server shutdown.
+
+    Raises:
+    - Exception: Handles various exceptions that may occur during server operation.
     """
     global connections
     global threads
@@ -444,9 +483,9 @@ def main():
                 connections[client_socket.fileno()] = client_socket
                 logging.info("Client connected")
 
-                client_handler = threading.Thread(target=handle_client, args=(client_socket,))
-                threads.append(client_handler)
-                client_handler.start()
+                client_handler_thread = threading.Thread(target=handle_client, args=(client_socket,))
+                threads.append(client_handler_thread)
+                client_handler_thread.start()
         except Exception as e:
             print(f"server is down  - {e}")
 
