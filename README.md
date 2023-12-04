@@ -4,10 +4,6 @@ This project is a Trivia game implemented in Python using the TCP protocol. It c
 server manages user authentication, scores, and trivia questions, while the client provides the interface for users to
 interact with the game.
 
-### Coming Up
-
-- Using API to get more questions
-
 ## Server
 
 ### Features
