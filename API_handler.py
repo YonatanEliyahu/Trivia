@@ -3,7 +3,27 @@ import html
 import requests
 import json
 import random
-from html import unescape
+
+
+def my_unescape(s, quote=True):
+    """
+    this function is my version to the html.unescape() function
+
+    Convert all named and numeric character references (e.g. &gt;, &#62;,
+    &x3e;) in the string s to the corresponding unicode characters.
+    This function uses the rules defined by the HTML 5 standard
+    for both valid and invalid character references, and the list of
+    HTML 5 named character references defined in html.entities.html5.
+    """
+    s = s.replace("&amp;","&")  # Must be done first!
+    s = s.replace("&lt;","<")
+    s = s.replace("&gt;",">")
+    if quote:
+        s = s.replace("&quot;",'"')
+        s = s.replace("&#x27;",'\'')
+        s = s.replace("&#039;",'\'')
+    return s
+
 
 QUESTION_API_URL = "https://opentdb.com/api.php?amount=50&difficulty=easy&type=multiple"
 
@@ -48,19 +68,22 @@ def load_question_with_api(starting_q_id: int = 1):
     # Assuming r.content is the JSON content you provided
     json_data = json.loads(r.content)
     question_dict = {}
-
     # Extracting questions
     for q_id, question in enumerate(json_data["results"], start=starting_q_id):
         # Fixing HTML escape characters in the question and answers
         for key, value in question.items():
-            question[key] = html.unescape(value)
+            if type(value) == str:
+                question[key] = my_unescape(value)
+            elif type(value) == list:
+                for index, item in enumerate(value):
+                    value[index] = my_unescape(item)
 
         # Randomizing options and obtaining correct index
         options, correct = get_randomized_options(question["correct_answer"], question["incorrect_answers"])
 
         # Creating a dictionary entry for the question
         question_dict[q_id] = {"question": question["question"], "answers": list(options), "correct": correct}
-        print(f"{q_id} - {question_dict[q_id]}")
+        #print(f"{q_id} - {question_dict[q_id]}")
 
     return question_dict
 
