@@ -1,5 +1,3 @@
-import html
-
 import requests
 import json
 import random
