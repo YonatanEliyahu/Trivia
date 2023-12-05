@@ -1,13 +1,11 @@
 import sqlite3
 from API_handler import load_question_with_api
+from models.user_model import User
 
 DB_NAME = 'trivia_DB.db'
 
-users_dict = {
-    "test": {"password": "test", "score": 0, "questions_asked": []},
-    "yossi": {"password": "123", "score": 50, "questions_asked": []},
-    "master": {"password": "master", "score": 200, "questions_asked": []}
-}
+users_dict = {"test": User("test", "test", 0), "Yonatan": User("Yonatan", "Eliyahu", 100)}
+
 
 def connect_to_db():
     conn = sqlite3.connect(DB_NAME)
@@ -79,14 +77,17 @@ def create_users_table():
             score INTEGER NOT NULL
         )
     ''')
-    # Insert data into the table
     try:
-        for username, user_data in users_dict.items():
-            cursor.execute(
-                'INSERT INTO users_data (username, password,score) '
-                'VALUES (?, ?, ?)', (username, user_data["password"], user_data["score"]))
-    except:  # data already in table
-        pass
+        for user in users_dict.values():
+            try:
+                cursor.execute(
+                    'INSERT INTO users_data (username, password, score) '
+                    'VALUES (?, ?, ?)', (user.get_username(), user.get_password(), user.get_score()))
+            except sqlite3.IntegrityError:  # user is already in the table, try next user
+                pass
+    except Exception as e:
+        # Handle other exceptions if needed
+        print(f"An error occurred: {e}")
     finally:
         # Commit and close the connection
         close_db_connection(conn)
@@ -105,20 +106,24 @@ def create_user_question_relation_table():
         )
     ''')
 
-    # Insert data into the table
     try:
-        for username in users_dict.key():
-            for questions_id in users_dict[username]["questions_asked"]:
-                cursor.execute(
-                    'INSERT INTO user_question_relation (username, question_id) '
-                    'VALUES (?, ?)', (username, questions_id))
-    except:  # data already in table
-        pass
+        for user in users_dict.values():
+            for questions_id in user.get_questions_asked():
+                try:
+                    cursor.execute(
+                        'INSERT INTO user_question_relation (username, question_id) '
+                        'VALUES (?, ?)', (user.get_username(), questions_id))
+                except sqlite3.IntegrityError:  # data is already in the table, try next line
+                    pass
+    except Exception as e:
+        # Handle other exceptions if needed
+        print(f"An error occurred: {e}")
     finally:
         # Commit and close the connection
         close_db_connection(conn)
 
-def add_questions_to_DB(questions_dict : dict):
+
+def add_questions_to_DB(questions_dict: dict):
     conn, cursor = connect_to_db()
     try:
         for q_num, q_data in questions_dict.items():
@@ -143,14 +148,11 @@ def load_user_data_from_db():
     user_questionID = cursor.fetchall()
 
     users_res_dict = {}
-    for user in users:
-        user_data = {"password": user[1],
-                     "score": user[2],
-                     "questions_asked": []
-                     }
-        users_res_dict[user[0]] = user_data
+    for user_info in users:
+        new_user = User(user_info[0], user_info[1], user_info[2])
+        users_res_dict[user_info[0]] = new_user
     for row in user_questionID:
-        users_res_dict[row[0]]["questions_asked"].append(row[1])
+        users_res_dict[row[0]].ask_question(row[1])
 
     # Commit and close the connection
     close_db_connection(conn)
@@ -171,20 +173,20 @@ def create_user_data_in_db(username: str, password: str):
         close_db_connection(conn)
 
 
-def update_user_data_in_db(user_data: tuple):
+def update_user_data_in_db(user: User):
     conn, cursor = connect_to_db()
 
     cursor.execute('''
         UPDATE users_data
         SET score = ?
         WHERE username = ?
-    ''', (user_data[1]['score'], user_data[0]))
+    ''', (user.get_score(), user.get_username()))
 
-    for question_id in user_data[1]["questions_asked"]:
+    for question_id in user.get_questions_asked():
         try:
             cursor.execute(
                 'INSERT INTO user_question_relation (username, question_id) '
-                'VALUES (?, ?)', (user_data[0], question_id))
+                'VALUES (?, ?)', (user.get_username(), question_id))
         except sqlite3.IntegrityError:
             # Handle the case where the relation already exists
             pass

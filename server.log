@@ -71,3 +71,85 @@
 2023-12-04 18:55:38,500 [INFO] - [SERVER] SHUTDOWN
 
 2023-12-04 18:55:38,501 [ERROR] - Client disconnected
+2023-12-05 11:21:42,922 [INFO] - Starting up server ...
+2023-12-05 11:21:42,922 [INFO] - Server is up and listening ...
+2023-12-05 11:21:48,464 [INFO] - Client connected
+2023-12-05 11:21:53,591 [INFO] - [CLIENT] b'LOGIN           |0009|test#test'
+2023-12-05 11:21:53,591 [INFO] - [SERVER] LOGIN_OK        |0000|
+2023-12-05 11:21:53,591 [INFO] - test logged in successfully..
+2023-12-05 11:21:55,628 [INFO] - [SERVER] ERROR           |0007|Error! 
+2023-12-05 11:21:55,628 [ERROR] - Error! 
+2023-12-05 11:21:55,628 [INFO] - logging [TEST] out at ('127.0.0.1', 54164)...
+2023-12-05 11:21:55,650 [ERROR] - Client disconnected
+2023-12-05 11:22:36,177 [INFO] - [SERVER] SHUTDOWN
+
+2023-12-05 11:23:25,068 [INFO] - Starting up server ...
+2023-12-05 11:23:25,068 [INFO] - Server is up and listening ...
+2023-12-05 11:23:26,440 [INFO] - Client connected
+2023-12-05 11:23:31,782 [INFO] - [CLIENT] b'LOGIN           |0009|test#test'
+2023-12-05 11:23:36,926 [INFO] - [SERVER] LOGIN_OK        |0000|
+2023-12-05 11:23:36,926 [INFO] - test logged in successfully..
+2023-12-05 11:25:11,503 [INFO] - Starting up server ...
+2023-12-05 11:25:11,503 [INFO] - Server is up and listening ...
+2023-12-05 11:25:17,457 [INFO] - Client connected
+2023-12-05 11:25:25,700 [INFO] - [CLIENT] b'LOGIN           |0009|test#test'
+2023-12-05 11:25:27,533 [INFO] - [SERVER] LOGIN_OK        |0000|
+2023-12-05 11:25:27,533 [INFO] - test logged in successfully..
+2023-12-05 11:27:11,326 [INFO] - Starting up server ...
+2023-12-05 11:27:11,326 [INFO] - Server is up and listening ...
+2023-12-05 11:27:13,264 [INFO] - Client connected
+2023-12-05 11:27:16,835 [INFO] - [CLIENT] b'LOGIN           |0009|test#test'
+2023-12-05 11:27:20,022 [INFO] - [SERVER] LOGIN_OK        |0000|
+2023-12-05 11:27:20,022 [INFO] - test logged in successfully..
+2023-12-05 11:27:33,369 [INFO] - [TEST] b'MY_SCORE        |0000|'
+2023-12-05 11:27:37,164 [INFO] - [SERVER] YOUR_SCORE      |0001|5
+2023-12-05 11:27:55,072 [INFO] - [TEST] b'HIGHSCORE       |0000|'
+2023-12-05 11:27:55,072 [INFO] - [SERVER] ALL_SCORE       |0044|	master: 200
+	yossi: 50
+	test: 5
+	Yonatan: 5
+2023-12-05 11:28:01,373 [INFO] - [TEST] b'LOGGED          |0000|'
+2023-12-05 11:28:01,373 [INFO] - [SERVER] LOGGED_ANSWER   |0004|test
+2023-12-05 11:28:22,245 [INFO] - Client connected
+2023-12-05 11:28:33,256 [INFO] - [CLIENT] b'LOGIN           |0015|Yonatan#Eliyahu'
+2023-12-05 11:28:33,256 [INFO] - [SERVER] LOGIN_OK        |0000|
+2023-12-05 11:28:33,256 [INFO] - Yonatan logged in successfully..
+2023-12-05 11:28:35,731 [INFO] - [YONATAN] b'LOGGED          |0000|'
+2023-12-05 11:28:35,731 [INFO] - [SERVER] LOGGED_ANSWER   |0012|test,Yonatan
+2023-12-05 11:28:37,968 [INFO] - [YONATAN] b'GET_QUESTION    |0000|'
+2023-12-05 11:28:37,968 [INFO] - [SERVER] YOUR_QUESTION   |0055|4#How many teeth does an adult rabbit have?#24#28#26#30
+2023-12-05 11:28:43,357 [INFO] - [YONATAN] b'SEND_ANSWER     |0001|3'
+2023-12-05 11:28:43,357 [INFO] - [SERVER] WRONG_ANSWER    |0001|2
+2023-12-05 11:28:49,294 [INFO] - [YONATAN] b'GET_QUESTION    |0000|'
+2023-12-05 11:28:49,294 [INFO] - [SERVER] YOUR_QUESTION   |0130|99#Who is the main protagonist in the game Life is Strange: Before The Storm?#Frank Bowers#Rachel Amber#Max Caulfield#Chloe Price 
+2023-12-05 11:28:57,999 [INFO] - [YONATAN] b'SEND_ANSWER     |0001|3'
+2023-12-05 11:28:57,999 [INFO] - [SERVER] WRONG_ANSWER    |0001|4
+2023-12-05 11:29:00,219 [INFO] - [YONATAN] b'GET_QUESTION    |0000|'
+2023-12-05 11:29:00,219 [INFO] - [SERVER] YOUR_QUESTION   |0071|12#The Flag of the European Union has how many stars on it?#12#14#16#10
+2023-12-05 11:29:34,218 [INFO] - [YONATAN] b'SEND_ANSWER     |0001|1'
+2023-12-05 11:29:34,218 [INFO] - [SERVER] CORRECT_ANSWER  |0000|
+2023-12-05 11:30:36,409 [INFO] - Starting up server ...
+2023-12-05 11:30:36,409 [INFO] - Server is up and listening ...
+2023-12-05 11:30:40,302 [INFO] - Client connected
+2023-12-05 11:30:44,027 [INFO] - Client connected
+2023-12-05 11:30:49,808 [INFO] - [CLIENT] b'LOGIN           |0009|test#test'
+2023-12-05 11:30:49,808 [INFO] - [SERVER] LOGIN_OK        |0000|
+2023-12-05 11:30:49,808 [INFO] - test logged in successfully..
+2023-12-05 11:31:01,334 [INFO] - [CLIENT] b'LOGIN           |0015|Yonatan#Eliyahu'
+2023-12-05 11:31:01,334 [INFO] - [SERVER] LOGIN_OK        |0000|
+2023-12-05 11:31:01,334 [INFO] - Yonatan logged in successfully..
+2023-12-05 11:31:04,364 [INFO] - [YONATAN] b'LOGGED          |0000|'
+2023-12-05 11:31:04,364 [INFO] - [SERVER] LOGGED_ANSWER   |0012|test,Yonatan
+2023-12-05 11:31:07,920 [INFO] - Performing server management task: Kicking user...
+2023-12-05 11:31:11,681 [INFO] - logging [YONATAN] out at ('127.0.0.1', 54219)...
+2023-12-05 11:31:11,696 [INFO] - [SERVER] kicked Yonatan out of the server
+2023-12-05 11:31:11,696 [ERROR] - Client disconnected
+2023-12-05 11:31:20,195 [INFO] - Client connected
+2023-12-05 11:31:30,896 [INFO] - [TEST] b'LOGOUT          |0000|'
+2023-12-05 11:31:30,896 [INFO] - logging [TEST] out at ('127.0.0.1', 54221)...
+2023-12-05 11:31:30,912 [ERROR] - Client disconnected
+2023-12-05 11:31:36,393 [INFO] - Performing server management task: Kicking user...
+2023-12-05 11:31:47,234 [INFO] - closing connection at ('127.0.0.1', 54226)...
+2023-12-05 11:31:47,234 [INFO] - [SERVER] SHUTDOWN
+
+2023-12-05 11:31:47,234 [ERROR] - Client disconnected

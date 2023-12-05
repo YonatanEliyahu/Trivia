@@ -3,6 +3,7 @@ import threading
 import logging
 import API_handler
 import trivia_DB
+from models.user_model import User
 from chatlib_files import chatlib
 from chatlib_files.chatlib import MSG_MAX_SIZE
 from random import shuffle as shuffle
@@ -16,7 +17,7 @@ CONN_FAIL = -1  # connection failure indicator
 FAIL = -2  # non connection failure indicator
 
 # GLOBALS
-users = {}
+users = {}  # maps username to a user object
 questions = {}
 logged_users = {}  # a dictionary of client file descriptor to usernames
 connections = {}  # list of connected client file descriptor to socket object
@@ -109,10 +110,10 @@ def create_random_question(conn: socket) -> (int, str, int):
     global questions
     global logged_users
     global users
-
+    this_username =logged_users[conn.fileno()]
     # get all the questions that the user wasn't asked before
     optional_questions = [(key, value) for key, value in questions.items()
-                          if key not in users[logged_users[conn.fileno()]]["questions_asked"]]
+                          if key not in users[this_username].get_questions_asked()]
     if len(optional_questions) == 0:  # no question available at this moment to this user
         return 0, None, 0
     shuffle(optional_questions)
@@ -139,6 +140,7 @@ def handle_question_message(conn: socket):
     global users
     global logged_users
 
+    this_username = logged_users[conn.fileno()]
     question_num, question, correct_ans = create_random_question(conn)
     if question is None:
         # no question is available
@@ -146,13 +148,13 @@ def handle_question_message(conn: socket):
         return SUCCESS
     try:
         build_and_send_message(conn, chatlib.PROTOCOL_SERVER["send_question_msg"], question)
-        users[logged_users[conn.fileno()]]["questions_asked"].append(question_num)
+        users[this_username].ask_question(question_num)
         cmd, data = recv_message_and_parse(conn)
         if cmd != chatlib.PROTOCOL_CLIENT["send_answer_msg"]:
             raise ConnectionError
         data = int(data)  # may raise TypeError
         if data == correct_ans:
-            users[logged_users[conn.fileno()]]["score"] += 5
+            users[this_username].update_score() # add five points to the user
             build_and_send_message(conn, chatlib.PROTOCOL_SERVER["correct_ans_msg"])
         else:  # wrong answer
             build_and_send_message(conn, chatlib.PROTOCOL_SERVER["wrong_ans_msg"], str(correct_ans))
@@ -188,7 +190,7 @@ def handle_login_message(conn, data):
             send_error(conn)  # user already connected
             return
 
-        if users[user_info[0]]["password"] == user_info[1]:
+        if users[user_info[0]].check_password(user_info[1]):
             build_and_send_message(conn, chatlib.PROTOCOL_SERVER["login_ok_msg"])
             logged_users[conn.fileno()] = user_info[0]
             logging.info(f"{user_info[0]} logged in successfully..")
@@ -218,11 +220,11 @@ def handle_signup_message(conn, data):
     if user_info[0] in users.keys():
         send_error(conn, "username already exists incorrect")
         return
-    users[user_info[0]] = {"password": user_info[1], "score": 0, "questions_asked": []}
+    users[user_info[0]] = User(user_info[0],user_info[1])
     logging.info(f"{user_info[0]} signed up successfully..")
-    try:  # DB failure
+    try:
         create_user_data_in_db(user_info[0], user_info[1])
-    except:
+    except: # DB failure
         del users[user_info[0]]
         send_error(conn, f"username or password are incorrect")
         return
@@ -240,7 +242,7 @@ def handle_logout_message(conn: socket):
     if conn.fileno() in logged_users:
         logging.info(f"logging [{logged_users[conn.fileno()].upper()}] out at {conn.getpeername()}...")
 
-        user = (f'{logged_users[conn.fileno()]}', users[logged_users[conn.fileno()]])
+        user = users[logged_users[conn.fileno()]]
         update_user_data_in_db(user)
         del logged_users[conn.fileno()]
 
@@ -276,12 +278,13 @@ def handle_getscore_message(conn: socket, req_type: int = 0):
     global users
     global logged_users
     if req_type == 0:  # get my score
+        this_username =logged_users[conn.fileno()]
         build_and_send_message(conn, chatlib.PROTOCOL_SERVER["your_score_msg"],
-                               users[logged_users[conn.fileno()]]["score"])
+                               str(users[this_username].get_score()))
     else:  # get highscore table
         scores = '\n'.join(
-            [f'\t{user}: {data["score"]}' for user, data in
-             sorted(users.items(), key=lambda x: x[1]["score"], reverse=True)])
+            [f'\t{user.get_username()}: {user.get_score()}' for user in
+             sorted(users.values(), key=lambda user: user.get_score(), reverse=True)])
         # creates a formatted str of the score table DESC order
         build_and_send_message(conn, chatlib.PROTOCOL_SERVER["highscore_msg"], scores)
 
@@ -361,6 +364,9 @@ def kick_user_by_pick():
     - Sends a logout message to the selected user's socket.
     """
     logging.info("Performing server management task: Kicking user...")
+    if len(logged_users)==0:
+        print("No clients to kick")
+        return
     users_str = '\n'.join([f'{i}. {user}' for i, user in enumerate(logged_users.values(), start=1)])
     pick = input(f"Please pick a user to kick: \n{users_str}\n")
     if pick == None:
