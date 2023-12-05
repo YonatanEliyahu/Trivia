@@ -4,6 +4,7 @@ import logging
 import API_handler
 import trivia_DB
 from models.User_model import User
+from models.Question_model import Question
 from chatlib_files import chatlib
 from chatlib_files.chatlib import MSG_MAX_SIZE
 from random import shuffle as shuffle
@@ -12,19 +13,17 @@ from trivia_DB import load_user_data_from_db
 from trivia_DB import update_user_data_in_db
 from trivia_DB import create_user_data_in_db
 
-SUCCESS = 0  # success indicator
-CONN_FAIL = -1  # connection failure indicator
-FAIL = -2  # non connection failure indicator
-
 # GLOBALS
-users = {}  # maps username to a user object
-questions = {}
-logged_users = {}  # a dictionary of client file descriptor to usernames
-connections = {}  # list of connected client file descriptor to socket object
+users: [str, User] = {}  # maps username to a user object
+questions: [int, Question] = {}  # maps question_id to Question object
+logged_users: [int, str] = {}  # a dictionary of client file descriptor to usernames
+connections: [int, socket] = {}  # list of connected client file descriptor to socket object
+
+threads = []  # list of running client threads
 
 allowed_login_chars = set(chr(i) for i in range(ord('a'), ord('z') + 1)).union(
     set(chr(i) for i in range(ord('A'), ord('Z') + 1))).union(
-    {'!', '@', '_', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9'})
+    {'!', '@', '_', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9'})  # set of allowed chars in username and password
 
 # Set up logging to a file
 logging.basicConfig(filename='server.log', level=logging.DEBUG,
@@ -32,8 +31,6 @@ logging.basicConfig(filename='server.log', level=logging.DEBUG,
 
 # Define a global flag to signal server shutdown
 shutdown_server = False
-
-threads = []
 
 ERROR_MSG = "Error! "
 SERVER_PORT = 5678
@@ -48,9 +45,9 @@ def setup_socket() -> socket:
     Returns: the socket object
     """
     logging.info("Starting up server ...")
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.bind((SERVER_IP, SERVER_PORT))
-    sock.listen()
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)  # create new tcp socket
+    sock.bind((SERVER_IP, SERVER_PORT))  # bind the socket to known port and ip add.
+    sock.listen()  # set the server to listen mode
     logging.info("Server is up and listening ...")
 
     return sock
@@ -62,8 +59,8 @@ def build_and_send_message(conn: socket, code: str, data: str = ""):
     Builds a new message using chatlib, wanted code and message.
     Prints debug info, then sends it to the given socket.
     """
-    formatted_msg = chatlib.build_message(code, data)
-    conn.send(formatted_msg.encode())
+    formatted_msg = chatlib.build_message(code, data)  # build formated srting
+    conn.send(formatted_msg.encode())  # send message to client
     logging.info(f"[SERVER] {formatted_msg}")
 
 
@@ -75,7 +72,7 @@ def recv_message_and_parse(conn: socket) -> (str, str):
     If error occurred, will return None, None
     """
     try:
-        full_msg = conn.recv(MSG_MAX_SIZE)
+        full_msg = conn.recv(MSG_MAX_SIZE)  # recv message from client
         cmd, data = chatlib.parse_message(full_msg.decode())
         if conn.fileno() not in logged_users.keys():
             logging.info(f"[CLIENT] {full_msg}")
@@ -100,17 +97,17 @@ def load_databases():
 
 # QUESTION HANDLING
 
-def create_random_question(conn: socket) -> (int, str, int):
+def get_random_question(conn: socket) -> (int, str, int):
     """
     Gets socket connection and returns a random available question
-    returns question number, formatted question , and correct answer
-    if no question available for the current user, will return 0,None,0
+    returns random question number
+    if no question available for the current user, will return 0
 
     """
     global questions
     global logged_users
     global users
-    this_username =logged_users[conn.fileno()]
+    this_username = logged_users[conn.fileno()]
     # get all the questions that the user wasn't asked before
     optional_questions = [(key, value) for key, value in questions.items()
                           if key not in users[this_username].get_questions_asked()]
@@ -118,12 +115,7 @@ def create_random_question(conn: socket) -> (int, str, int):
         return 0, None, 0
     shuffle(optional_questions)
     question_num, question_data = optional_questions[0]
-    # example -  2313, {"question": "How much is 2+2", "answers": ["3", "4", "2", "1"], "correct": 2}
-    correct = question_data["correct"]
-    question = f"{question_num}#{question_data['question']}#" + \
-               str('#'.join(str(answer) for answer in question_data['answers']))
-    # example 2313#How much is 2+2?#3#4#2#1
-    return question_num, question, correct
+    return question_num
 
 
 def handle_question_message(conn: socket):
@@ -141,31 +133,31 @@ def handle_question_message(conn: socket):
     global logged_users
 
     this_username = logged_users[conn.fileno()]
-    question_num, question, correct_ans = create_random_question(conn)
-    if question is None:
+    question_num = get_random_question(conn)
+    if question_num == 0:
         # no question is available
         build_and_send_message(conn, chatlib.PROTOCOL_SERVER["no_quest_msg"])
-        return SUCCESS
+        return
     try:
-        build_and_send_message(conn, chatlib.PROTOCOL_SERVER["send_question_msg"], question)
-        users[this_username].ask_question(question_num)
-        cmd, data = recv_message_and_parse(conn)
+        formatted_question = questions[question_num].chatlib_supporting_str(question_num)
+        correct_ans = questions[question_num].get_correct_ans()
+
+        build_and_send_message(conn, chatlib.PROTOCOL_SERVER["send_question_msg"], formatted_question)  # send question
+        users[this_username].ask_question(question_num)  # add question to user list
+        cmd, data = recv_message_and_parse(conn)  # recv answer from user
         if cmd != chatlib.PROTOCOL_CLIENT["send_answer_msg"]:
             raise ConnectionError
         data = int(data)  # may raise TypeError
         if data == correct_ans:
-            users[this_username].update_score() # add five points to the user
+            users[this_username].update_score()  # add five points to the user
             build_and_send_message(conn, chatlib.PROTOCOL_SERVER["correct_ans_msg"])
         else:  # wrong answer
             build_and_send_message(conn, chatlib.PROTOCOL_SERVER["wrong_ans_msg"], str(correct_ans))
-        return SUCCESS
+        return
 
     # both exceptions will be handled in the calling function
-    except ConnectionError:
-        return CONN_FAIL
-
-    except TypeError:
-        return FAIL
+    except (ConnectionError, TypeError):
+        raise
 
 
 # MESSAGE HANDLING
@@ -218,13 +210,13 @@ def handle_signup_message(conn, data):
             send_error(conn, f"username or password are incorrect - {c}")
             return
     if user_info[0] in users.keys():
-        send_error(conn, "username already exists incorrect")
+        send_error(conn, "username already exists")
         return
-    users[user_info[0]] = User(user_info[0],user_info[1])
+    users[user_info[0]] = User(user_info[0], user_info[1])
     logging.info(f"{user_info[0]} signed up successfully..")
     try:
         create_user_data_in_db(user_info[0], user_info[1])
-    except: # DB failure
+    except:  # DB failure
         del users[user_info[0]]
         send_error(conn, f"username or password are incorrect")
         return
@@ -278,7 +270,7 @@ def handle_getscore_message(conn: socket, req_type: int = 0):
     global users
     global logged_users
     if req_type == 0:  # get my score
-        this_username =logged_users[conn.fileno()]
+        this_username = logged_users[conn.fileno()]
         build_and_send_message(conn, chatlib.PROTOCOL_SERVER["your_score_msg"],
                                str(users[this_username].get_score()))
     else:  # get highscore table
@@ -328,12 +320,14 @@ def handle_client_message(conn: socket, cmd: str, data: str):
         handle_logged_users_message(conn)
 
     elif cmd == chatlib.PROTOCOL_CLIENT["get_question_msg"]:
-        status = handle_question_message(conn)
-        if status != SUCCESS:  # ==FAIL or ==CONN_FAIL
+        try:
+            handle_question_message(conn)
+        except TypeError:
             send_error(conn)
-            if status == CONN_FAIL:
-                handle_logout_message(conn)
-                raise ConnectionResetError
+        except ConnectionError:
+            send_error(conn)
+            handle_logout_message(conn)
+            raise ConnectionResetError
 
 
 def handle_client(client_socket):
@@ -364,7 +358,7 @@ def kick_user_by_pick():
     - Sends a logout message to the selected user's socket.
     """
     logging.info("Performing server management task: Kicking user...")
-    if len(logged_users)==0:
+    if len(logged_users) == 0:
         print("No clients to kick")
         return
     users_str = '\n'.join([f'{i}. {user}' for i, user in enumerate(logged_users.values(), start=1)])
@@ -409,7 +403,9 @@ def load_more_questions():
     logging.info(f"[SERVER] loading data from API to DB\n")
     start = max(questions.keys()) + 1
     new_questions = API_handler.load_question_with_api(start)
-    new_questions = {key: value for key, value in new_questions.items() if value not in questions.values()}
+    # This line checks if the content of each question (value) in new_questions is not present in the values of the questions dictionary.
+    # The all function is used to check this condition for all questions in questions.values()'
+    new_questions = {key: value for key, value in new_questions.items() if all(value != q for q in questions.values())}
     trivia_DB.add_questions_to_DB(new_questions)
     questions = load_question_table_from_db()
 

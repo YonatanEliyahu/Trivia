@@ -1,6 +1,7 @@
 import sqlite3
 from API_handler import load_question_with_api
 from models.User_model import User
+from models.Question_model import Question
 
 DB_NAME = 'trivia_DB.db'
 
@@ -19,6 +20,9 @@ def close_db_connection(conn):
 
 
 def create_question_table():
+    """
+    Creates a table named 'questions' in the database to store question data.
+    """
     conn, cursor = connect_to_db()
     # Create a table to store your data
     cursor.execute('''
@@ -36,12 +40,13 @@ def create_question_table():
     # Insert data into the table
     questions_api_dict = load_question_with_api()
     try:
-        for q_num, q_data in questions_api_dict.items():
+        for q_num, question in questions_api_dict.items():
+            answers = question.get_answers()
             cursor.execute(
                 'INSERT INTO questions (id, question,answer1,answer2,answer3,answer4,currectAnswer) '
                 'VALUES (?, ?, ?, ?, ?, ?, ?)', (
-                    q_num, q_data["question"], q_data["answers"][0], q_data["answers"][1], q_data["answers"][2],
-                    q_data["answers"][3], q_data["correct"]))
+                    q_num, question.get_question(), answers[0], answers[1], answers[2],
+                    answers[3], question.get_correct_ans()))
     except:
         pass
     finally:
@@ -50,6 +55,9 @@ def create_question_table():
 
 
 def load_question_table_from_db():
+    """
+    Loads a table named 'questions' from the database and store the questions in a dict[int:Question].
+    """
     conn, cursor = connect_to_db()
 
     cursor.execute('SELECT * FROM questions')
@@ -57,10 +65,7 @@ def load_question_table_from_db():
 
     questions_dict = {}
     for q in questions:
-        question_data = {"question": q[1],
-                         "answers": [q[2], q[3], q[4], q[5]],
-                         "correct": q[6]}
-        questions_dict[q[0]] = question_data
+        questions_dict[q[0]] = Question(question=q[1], answers=[q[2], q[3], q[4], q[5]], correct=q[6])
 
     # Commit and close the connection
     close_db_connection(conn)
@@ -68,6 +73,9 @@ def load_question_table_from_db():
 
 
 def create_users_table():
+    """
+    Creates a table named 'users_data' in the database to store users data.
+    """
     conn, cursor = connect_to_db()
     # Create a table to store your data
     cursor.execute('''
@@ -94,6 +102,9 @@ def create_users_table():
 
 
 def create_user_question_relation_table():
+    """
+    Creates a table named 'user_question_relation' in the database to store users asked questions(one to many relation).
+    """
     conn, cursor = connect_to_db()
     # Create a table to store user-question relations
     cursor.execute('''
@@ -124,14 +135,19 @@ def create_user_question_relation_table():
 
 
 def add_questions_to_DB(questions_dict: dict):
+    """
+    Adds a new questions (dict[int:Question]) to table 'questions' in the database.
+    question must be checked in advanced that any of them doesn't appear in the table.
+    """
     conn, cursor = connect_to_db()
     try:
-        for q_num, q_data in questions_dict.items():
+        for q_num, question in questions_dict.items():
+            answers = question.get_answers()
             cursor.execute(
                 'INSERT INTO questions (id, question,answer1,answer2,answer3,answer4,currectAnswer) '
                 'VALUES (?, ?, ?, ?, ?, ?, ?)', (
-                    q_num, q_data["question"], q_data["answers"][0], q_data["answers"][1], q_data["answers"][2],
-                    q_data["answers"][3], q_data["correct"]))
+                    q_num, question.get_question(), answers[0], answers[1], answers[2],
+                    answers[3], question.get_correct_ans()))
     except:
         pass
     finally:
@@ -140,6 +156,9 @@ def add_questions_to_DB(questions_dict: dict):
 
 
 def load_user_data_from_db():
+    """
+    Loads a table named 'users_data' from the database and store the users in a dict[str:User].
+    """
     conn, cursor = connect_to_db()
 
     cursor.execute('SELECT * FROM users_data')
@@ -160,6 +179,10 @@ def load_user_data_from_db():
 
 
 def create_user_data_in_db(username: str, password: str):
+    """
+    Adds a new user to table 'users_data' in the database.
+    user must be checked in advanced that he isn't in the database.
+    """
     conn, cursor = connect_to_db()
     try:
         cursor.execute(
@@ -174,13 +197,20 @@ def create_user_data_in_db(username: str, password: str):
 
 
 def update_user_data_in_db(user: User):
+    """
+    Updates user in 'users_data' table in the database.
+    user must be checked in advanced that he is in the database.
+    """
     conn, cursor = connect_to_db()
-
-    cursor.execute('''
-        UPDATE users_data
-        SET score = ?
-        WHERE username = ?
-    ''', (user.get_score(), user.get_username()))
+    try:
+        cursor.execute('''
+            UPDATE users_data
+            SET score = ?
+            WHERE username = ?
+        ''', (user.get_score(), user.get_username()))
+    except sqlite3.IntegrityError:
+        # Handle the case where user doesn't exist
+        return
 
     for question_id in user.get_questions_asked():
         try:
