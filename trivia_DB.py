@@ -1,6 +1,6 @@
 import sqlite3
 from API_handler import load_question_with_api
-from models.user_model import User
+from models.User_model import User
 
 DB_NAME = 'trivia_DB.db'
 

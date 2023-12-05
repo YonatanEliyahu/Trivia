@@ -3,7 +3,7 @@ import threading
 import logging
 import API_handler
 import trivia_DB
-from models.user_model import User
+from models.User_model import User
 from chatlib_files import chatlib
 from chatlib_files.chatlib import MSG_MAX_SIZE
 from random import shuffle as shuffle
