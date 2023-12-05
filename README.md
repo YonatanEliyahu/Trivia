@@ -24,6 +24,16 @@ interact with the game.
 - SQLite for database storage
 - API integration for dynamic question loading
 
+### User Class
+
+The `User` class represents a user in the Trivia Game. It includes attributes such as `username`, `password`, `score`, and a list of `questions_asked`. This class is designed using object-oriented principles to encapsulate user-related functionalities.
+
+
+
+### Question Class
+
+The `Question` class represents a trivia question in the game. It includes attributes such as `question`, `answers`, and `correct`. This class encapsulates question-related functionalities and supports the game's dynamic question loading from an external API.
+
 ### Usage
 
 1. Clone the repository:
