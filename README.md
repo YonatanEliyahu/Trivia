@@ -31,8 +31,14 @@ interact with the game.
    ```bash
    git clone https://github.com/YonatanEliyahu/Trivia.git
    ```
+   
+2. install requests library:
 
-2. Run the server:
+   ```bash
+   pip install requests
+   ```
+
+3. Run the server:
 
    ```bash
    python server_TCP.py

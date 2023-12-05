@@ -1,8 +1,9 @@
-import html
-
 import requests
 import json
 import random
+from models.Question_model import Question
+
+QUESTION_API_URL = "https://opentdb.com/api.php?amount=50&difficulty=easy&type=multiple"
 
 
 def my_unescape(s, quote=True):
@@ -15,17 +16,14 @@ def my_unescape(s, quote=True):
     for both valid and invalid character references, and the list of
     HTML 5 named character references defined in html.entities.html5.
     """
-    s = s.replace("&amp;","&")  # Must be done first!
-    s = s.replace("&lt;","<")
-    s = s.replace("&gt;",">")
+    s = s.replace("&amp;", "&")  # Must be done first!
+    s = s.replace("&lt;", "<")
+    s = s.replace("&gt;", ">")
     if quote:
-        s = s.replace("&quot;",'"')
-        s = s.replace("&#x27;",'\'')
-        s = s.replace("&#039;",'\'')
+        s = s.replace("&quot;", '"')
+        s = s.replace("&#x27;", '\'')
+        s = s.replace("&#039;", '\'')
     return s
-
-
-QUESTION_API_URL = "https://opentdb.com/api.php?amount=50&difficulty=easy&type=multiple"
 
 
 def get_randomized_options(correct_option: str, incorrect_options: list):
@@ -65,7 +63,6 @@ def load_question_with_api(starting_q_id: int = 1):
     Note: The correct option is determined by the 'get_randomized_options' function.
     """
     r = requests.get(QUESTION_API_URL)
-    # Assuming r.content is the JSON content you provided
     json_data = json.loads(r.content)
     question_dict = {}
     # Extracting questions
@@ -82,8 +79,8 @@ def load_question_with_api(starting_q_id: int = 1):
         options, correct = get_randomized_options(question["correct_answer"], question["incorrect_answers"])
 
         # Creating a dictionary entry for the question
-        question_dict[q_id] = {"question": question["question"], "answers": list(options), "correct": correct}
-        #print(f"{q_id} - {question_dict[q_id]}")
+        question_dict[q_id] = Question(question["question"], list(options), correct)
+        print(f"{q_id} - {question_dict[q_id]}")
 
     return question_dict
 
